@@ -1,0 +1,397 @@
+-- @hydradat
+
+if not game:IsLoaded() then game.Loaded:Wait() end
+repeat task.wait() until game.Players.LocalPlayer
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreGui = game:GetService("CoreGui")
+local Workspace = game:GetService("Workspace")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local VirtualUser = game:GetService("VirtualUser")
+
+local LocalPlayer = Players.LocalPlayer
+
+local Config = {
+    Speed = 250,  -- Tốc độ bay
+    AutoBuyRandom = true,  -- Random
+    AutoStore = true,  -- Cất trái
+    HopIfNoFruit = true,  -- Hop server sau 7 giây
+    EnableESP = true,  -- ESP
+    Team = "Pirates"  -- Phe 
+}
+
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local TitleLabel = Instance.new("TextLabel")
+local TimeLabel = Instance.new("TextLabel")
+local StatusLabel = Instance.new("TextLabel")
+local UIPadding = Instance.new("UIPadding")
+local UIListLayout = Instance.new("UIListLayout")
+
+ScreenGui.Name = "NejiFindFruits"
+if CoreGui:FindFirstChild("NejiFindFruits") then
+    CoreGui.NejiFindFruits:Destroy()
+end
+if gethui then
+    ScreenGui.Parent = gethui()
+elseif game:GetService("CoreGui") then
+    ScreenGui.Parent = game:GetService("CoreGui")
+else
+    ScreenGui.Parent = LocalPlayer.PlayerGui
+end
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true 
+
+local Background = Instance.new("Frame")
+Background.Name = "Background"
+Background.Parent = ScreenGui
+Background.Size = UDim2.new(1, 0, 1, 0)
+Background.Position = UDim2.new(0, 0, 0, 0)
+Background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Background.BackgroundTransparency = 0.5
+Background.BorderSizePixel = 0
+
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = Background 
+MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+MainFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+MainFrame.BackgroundTransparency = 1.000 
+MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+MainFrame.Size = UDim2.new(0, 800, 0, 300)
+
+UIListLayout.Parent = MainFrame
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 15) 
+
+UIPadding.Parent = MainFrame
+UIPadding.PaddingTop = UDim.new(0, 20)
+UIPadding.PaddingBottom = UDim.new(0, 20)
+
+TitleLabel.Name = "TitleLabel"
+TitleLabel.Parent = MainFrame
+TitleLabel.BackgroundTransparency = 1.000
+TitleLabel.Size = UDim2.new(1, 0, 0, 60)
+TitleLabel.Font = Enum.Font.FredokaOne
+TitleLabel.Text = "Đại Hub - Finder Fruits"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+TitleLabel.TextSize = 50
+TitleLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+TitleLabel.TextStrokeTransparency = 0.3
+
+StatusLabel.Name = "StatusLabel"
+StatusLabel.Parent = MainFrame
+StatusLabel.BackgroundTransparency = 1.000
+StatusLabel.Size = UDim2.new(1, 0, 0, 40)
+StatusLabel.Font = Enum.Font.GothamBold
+StatusLabel.Text = "Status : NEJI HUB"
+StatusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+StatusLabel.TextSize = 28
+StatusLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+StatusLabel.TextStrokeTransparency = 0.5
+
+local InfoLabel = Instance.new("TextLabel")
+InfoLabel.Name = "InfoLabel"
+InfoLabel.Parent = MainFrame
+InfoLabel.BackgroundTransparency = 1.000
+InfoLabel.Size = UDim2.new(1, 0, 0, 35)
+InfoLabel.Font = Enum.Font.GothamBold
+InfoLabel.Text = "Tiktok: @hydradat"
+InfoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+InfoLabel.TextSize = 22
+InfoLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+InfoLabel.TextStrokeTransparency = 0.5
+
+local function UpdateStatus(text)
+    StatusLabel.Text = "Status : " .. text
+end
+
+local function GetCharacter()
+    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+end
+
+local function GetRootPart()
+    local Char = GetCharacter()
+    return Char:WaitForChild("HumanoidRootPart", 10)
+end
+
+local function GetHumanoid()
+    local Char = GetCharacter()
+    return Char:WaitForChild("Humanoid", 10)
+end
+
+local function CreateESP(instance)
+    if not Config.EnableESP then return end
+    if instance:FindFirstChild("NejiESP") then return end
+
+    local bill = Instance.new("BillboardGui")
+    bill.Name = "ESP"
+    bill.Adornee = instance:FindFirstChild("Handle") or instance
+    bill.Size = UDim2.new(0, 200, 0, 50)
+    bill.AlwaysOnTop = true
+    bill.Parent = instance
+
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Parent = bill
+    nameLabel.Size = UDim2.new(1, 0, 1, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = instance.Name
+    nameLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+    nameLabel.TextStrokeTransparency = 0
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextSize = 15
+end
+
+local startTime = os.time()
+task.spawn(function()
+    while true do
+        local currentTime = os.time()
+        local diff = currentTime - startTime
+        local h = math.floor(diff / 3600)
+        local m = math.floor((diff % 3600) / 60)
+        local s = diff % 60
+        TimeLabel.Text = string.format("Time : %dh %dm %ds", h, m, s)
+        task.wait(1)
+    end
+end)
+
+local currentTween = nil
+local function TweenTo(targetCFrame)
+    local HRP = GetRootPart()
+    if not HRP then return end
+    
+    local Char = GetCharacter()
+    local Hum = GetHumanoid()
+    if not Hum or Hum.Health <= 0 then return end
+
+    local Distance = (HRP.Position - targetCFrame.Position).Magnitude
+    local Info = TweenInfo.new(Distance / Config.Speed, Enum.EasingStyle.Linear)
+    
+    if currentTween then currentTween:Cancel() end
+
+    currentTween = TweenService:Create(HRP, Info, {CFrame = targetCFrame})
+    currentTween:Play()
+    
+    local NoclipConn
+    NoclipConn = RunService.Stepped:Connect(function()
+        if currentTween and currentTween.PlaybackState == Enum.PlaybackState.Playing and Char then
+            for _, part in pairs(Char:GetDescendants()) do
+                if part:IsA("BasePart") and part.CanCollide then
+                    part.CanCollide = false
+                end
+            end
+            if HRP then HRP.Velocity = Vector3.zero end
+        else
+            if NoclipConn then NoclipConn:Disconnect() end
+        end
+    end)
+    return currentTween
+end
+
+local function InvokeCommF(arg1, arg2, arg3)
+    local CommF = ReplicatedStorage.Remotes.CommF_
+    if CommF then
+        return CommF:InvokeServer(arg1, arg2, arg3)
+    end
+end
+
+local function StoreFruit(fruitInstance)
+    local fruitName = fruitInstance:GetAttribute("OriginalName") or fruitInstance.Name
+    local args = { [1] = "StoreFruit", [2] = fruitName, [3] = fruitInstance }
+    pcall(function() ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(args)) end)
+end
+
+local function BuyRandomFruit()
+    pcall(function() InvokeCommF("Cousin", "Buy") end)
+end
+
+local function AutoChooseTeam()
+    pcall(function() InvokeCommF("SetTeam", Config.Team) end)
+end
+
+local function ServerHop()
+    local PlaceID = game.PlaceId
+    local AllIDs = {}
+    local success, result = pcall(function()
+        local record = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceID .. "/servers/Public?sortOrder=Asc&limit=100"))
+        for i, v in pairs(record.data) do
+            if v.playing < v.maxPlayers and v.id ~= game.JobId then
+                table.insert(AllIDs, v.id)
+            end
+        end
+    end)
+    
+    if #AllIDs > 0 then
+        TeleportService:TeleportToPlaceInstance(PlaceID, AllIDs[math.random(1, #AllIDs)], LocalPlayer)
+    else
+        UpdateStatus("Retrying...")
+        task.wait(1)
+        ServerHop()
+    end
+end
+
+task.spawn(function()
+    while LocalPlayer.Team == nil or LocalPlayer.Team.Name == "Neutral" do
+        AutoChooseTeam()
+        task.wait(0.5)
+    end
+end)
+
+local HopStart = nil
+local StoredAttempts = {}
+local IsBusyStoring = false
+
+task.spawn(function()
+    while true do
+        task.wait(8)
+        StoredAttempts = {} 
+    end
+end)
+
+task.spawn(function()
+    while true do
+        task.wait()
+        
+        local Char = GetCharacter()
+        local Hum = GetHumanoid()
+        local HRP = GetRootPart()
+
+        if Char and Hum and Hum.Health > 0 and HRP then
+            
+            IsBusyStoring = false
+
+            if Config.AutoStore then
+                local function tryStore(container)
+                    for _, tool in pairs(container:GetChildren()) do
+                        if tool:IsA("Tool") and (string.find(tool.Name, "Fruit") or tool:GetAttribute("OriginalName")) then
+                            local fName = tool:GetAttribute("OriginalName") or tool.Name
+                            if not StoredAttempts[fName] then StoredAttempts[fName] = 0 end
+                            
+                            if StoredAttempts[fName] < 5 then
+                                IsBusyStoring = true
+                                UpdateStatus("Đang cất: " .. fName)
+                                StoreFruit(tool)
+                                StoredAttempts[fName] = StoredAttempts[fName] + 1
+                                task.wait(0.1) 
+                            else
+                               IsBusyStoring = true
+                                UpdateStatus("Không thể cất! Đang hop...")
+                                ServerHop()
+                                task.wait(10)
+                            end
+                        end
+                    end
+                end
+                tryStore(LocalPlayer.Backpack)
+                if Char then tryStore(Char) end
+            end
+
+            if Config.AutoBuyRandom then
+                BuyRandomFruit()
+            end
+
+            local foundFruit = false
+            local fruits = {}
+            for _, v in pairs(Workspace:GetChildren()) do
+                if (v:IsA("Tool") or v:IsA("Model")) and string.find(v.Name, "Fruit") then
+                    if v:FindFirstChild("Handle") then
+                        table.insert(fruits, v)
+                    end
+                end
+            end
+
+            for _, v in pairs(fruits) do
+                foundFruit = true
+                HopStart = nil
+                
+                CreateESP(v)
+                UpdateStatus("Đang bay đến " .. v.Name)
+                
+                local targetHandle = v:FindFirstChild("Handle")
+                
+                if targetHandle then
+                    local tween = TweenTo(targetHandle.CFrame)
+                    if tween then tween.Completed:Wait() end
+                    
+                    if v.Parent ~= Workspace then
+                        local myFruit = LocalPlayer.Backpack:FindFirstChild(v.Name) or Char:FindFirstChild(v.Name)
+                        if not myFruit then
+                            UpdateStatus("Trái mất! Hop...")
+                            ServerHop() 
+                            task.wait(10)
+                        end
+                    end
+
+                    if (targetHandle.Position - HRP.Position).Magnitude < 15 then
+                        if firetouchinterest then
+                            firetouchinterest(HRP, targetHandle, 0)
+                            firetouchinterest(HRP, targetHandle, 1)
+                        end
+                        local pickupTime = tick()
+                        while v.Parent == Workspace and (tick() - pickupTime < 1) do
+                            HRP.CFrame = targetHandle.CFrame
+                            if Hum then Hum:EquipTool(v) end
+                            task.wait()
+                        end
+                    end
+                end
+            end
+
+            if not foundFruit then
+                if currentTween then 
+                    currentTween:Cancel() 
+                    currentTween = nil
+                end
+
+                if Config.HopIfNoFruit then
+                    if IsBusyStoring then
+                        HopStart = nil
+                    else
+                        if HopStart == nil then HopStart = tick() end
+                        local timePassed = tick() - HopStart
+                        local timeLeft = 7 - timePassed
+
+                        if timeLeft > 0 then
+                            UpdateStatus("Hop trong " .. math.ceil(timeLeft) .. "s")
+                        else
+                            UpdateStatus("Đang hop...")
+                            ServerHop()
+                            HopStart = nil 
+                        end
+                    end
+                else
+                    if not IsBusyStoring then
+                        UpdateStatus("Khu vực quét...") 
+                    end
+                    HopStart = nil
+                end
+            else
+                HopStart = nil
+            end
+        else
+            UpdateStatus("Đang chờ nhân vật...")
+        end
+    end
+end)
+
+task.spawn(function()
+    local VirtualInputManager = game:GetService("VirtualInputManager")
+    LocalPlayer.Idled:Connect(function()
+        if VirtualInputManager then
+            pcall(function()
+                VirtualInputManager:SendKeyEvent(true, "Space", false, game)
+                task.wait()
+                VirtualInputManager:SendKeyEvent(false, "Space", false, game)
+            end)
+        elseif VirtualUser then
+             pcall(function()
+                VirtualUser:CaptureController()
+                VirtualUser:ClickButton2(Vector2.new())
+            end)
+        end
+    end)
+end)
