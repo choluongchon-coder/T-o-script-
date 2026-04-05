@@ -16,10 +16,10 @@ local VirtualUser = game:GetService("VirtualUser")
 local LocalPlayer = Players.LocalPlayer
 
 local Config = {
-    Speed = 390,  -- Tốc độ bay
+    Speed = 400,  -- Tốc độ bay
     AutoBuyRandom = true,  -- Random
     AutoStore = true,  -- Cất trái
-    HopIfNoFruit = true,  -- Hop server sau 6 giây
+    HopIfNoFruit = true,  -- Hop server sau 7 giây
     EnableESP = true,  -- ESP
     Team = "Pirates"  -- Phe 
 }
@@ -34,7 +34,7 @@ local UIListLayout = Instance.new("UIListLayout")
 
 ScreenGui.Name = "nhặt trái"
 if CoreGui:FindFirstChild("ĐạiFindFruits") then
-    CoreGui.NejiFindFruits:Destroy()
+    CoreGui.Đại-FindFruits:Destroy()
 end
 if gethui then
     ScreenGui.Parent = gethui()
@@ -126,7 +126,7 @@ end
 
 local function CreateESP(instance)
     if not Config.EnableESP then return end
-    if instance:FindFirstChild("NejiESP") then return end
+    if instance:FindFirstChild("ESP") then return end
 
     local bill = Instance.new("BillboardGui")
     bill.Name = "ESP"
