@@ -16,7 +16,7 @@ local VirtualUser = game:GetService("VirtualUser")
 local LocalPlayer = Players.LocalPlayer
 
 local Config = {
-    Speed = 250,  -- Tốc độ bay
+    Speed = 350,  -- Tốc độ bay
     AutoBuyRandom = true,  -- Random
     AutoStore = true,  -- Cất trái
     HopIfNoFruit = true,  -- Hop server sau 7 giây
