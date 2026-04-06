@@ -19,7 +19,7 @@ local Config = {
     Speed = 350,  -- Tốc độ bay
     AutoBuyRandom = true,  -- Random
     AutoStore = true,  -- Cất trái
-    HopIfNoFruit = true,  -- Hop server sau 2 giây
+    HopIfNoFruit = true,  -- Hop server sau 7 giây
     EnableESP = true,  -- ESP
     Team = "Pirates"  -- Phe 
 }
@@ -353,7 +353,7 @@ task.spawn(function()
                     else
                         if HopStart == nil then HopStart = tick() end
                         local timePassed = tick() - HopStart
-                        local timeLeft = 2 - timePassed
+                        local timeLeft = 7 - timePassed
 
                         if timeLeft > 0 then
                             UpdateStatus("Hop trong " .. math.ceil(timeLeft) .. "s")
