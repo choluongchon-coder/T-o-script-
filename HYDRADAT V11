@@ -1,0 +1,192 @@
+-- ==========================================================
+-- SCRIPT OPTIMIZED V11: FIX INTERFACE BY REQUEST
+-- ==========================================================
+
+_G.AutoChest = true
+_G.PauseHop = false 
+_G.FastAttack = false 
+_G.ForceHopNow = false 
+local timeSpent = 0
+
+local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local currentPlaceId = game.PlaceId
+
+if not _G.VisitedServers then _G.VisitedServers = {} end
+table.insert(_G.VisitedServers, game.JobId)
+
+-- [0] AUTO CHỌN PHE (TEAM)
+spawn(function()
+    pcall(function()
+        local playerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+        local main = playerGui:WaitForChild("Main")
+        local chooseTeam = main:WaitForChild("ChooseTeam")
+        if chooseTeam.Enabled then
+            local args = { [1] = "SetTeam", [2] = "Pirates" }
+            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer(unpack(args))
+        end
+    end)
+end)
+
+-- [1] GIAO DIỆN V11 CHUẨN CẤU TRÚC THEO YÊU CẦU
+local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+ScreenGui.Name = "HydraDat_V11_CustomUI"
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 330, 0, 200) -- Tăng chiều cao để giao diện thoáng, đẹp
+MainFrame.Position = UDim2.new(0.02, 0, 0.1, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+local UIStroke = Instance.new("UIStroke", MainFrame)
+UIStroke.Color = Color3.fromRGB(255, 0, 0)
+UIStroke.Thickness = 3
+
+-- Dòng 1: Tên chính (To nhất trên cùng)
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, 0, 0.15, 0)
+Title.Position = UDim2.new(0, 0, 0.05, 0)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.SourceSansBold
+Title.Text = "🔥 tiktok:hydradat 🔥"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 22
+
+-- Dòng 2: Phần v11 nằm bên dưới cái tên
+local SubTitle = Instance.new("TextLabel", MainFrame)
+SubTitle.Size = UDim2.new(1, 0, 0.1, 0)
+SubTitle.Position = UDim2.new(0, 0, 0.22, 0)
+SubTitle.BackgroundTransparency = 1
+SubTitle.Font = Enum.Font.SourceSansBold
+SubTitle.Text = "Farm chest v11"
+SubTitle.TextColor3 = Color3.fromRGB(200, 200, 200)
+SubTitle.TextSize = 15
+
+-- Phần trạng thái vẫn giữ nguyên bên dưới
+local StatusLabel = Instance.new("TextLabel", MainFrame)
+StatusLabel.Size = UDim2.new(1, -30, 0.13, 0)
+StatusLabel.Position = UDim2.new(0, 15, 0.42, 0)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Font = Enum.Font.SourceSansBold
+StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+StatusLabel.TextSize = 13
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+StatusLabel.Text = "Trạng thái: Khởi động..."
+
+local BossLabel = Instance.new("TextLabel", MainFrame)
+BossLabel.Size = UDim2.new(1, -30, 0.13, 0)
+BossLabel.Position = UDim2.new(0, 15, 0.58, 0)
+BossLabel.BackgroundTransparency = 1
+BossLabel.Font = Enum.Font.SourceSansBold
+BossLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+BossLabel.TextSize = 13
+BossLabel.TextXAlignment = Enum.TextXAlignment.Left
+BossLabel.Text = "Boss: Đang quét..."
+
+local TimerLabel = Instance.new("TextLabel", MainFrame)
+TimerLabel.Size = UDim2.new(1, -30, 0.13, 0)
+TimerLabel.Position = UDim2.new(0, 15, 0.74, 0)
+TimerLabel.BackgroundTransparency = 1
+TimerLabel.Font = Enum.Font.SourceSansBold
+TimerLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+TimerLabel.TextSize = 13
+TimerLabel.TextXAlignment = Enum.TextXAlignment.Left
+TimerLabel.Text = "Thời gian đổi phòng: 0s / 40s"
+
+-- KHÓA CỨNG CAMERA CHỐNG LẬT MÀN HÌNH
+local cam = game.Workspace.CurrentCamera
+game:GetService("RunService").RenderStepped:Connect(function()
+    local lp = game.Players.LocalPlayer
+    if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+        if _G.AutoChest and not _G.PauseHop then
+            cam.CameraType = Enum.CameraType.Custom
+            if cam.CameraSubject ~= lp.Character.Humanoid then
+                cam.CameraSubject = lp.Character.Humanoid
+            end
+        end
+    end
+end)
+
+-- [2] LUỒNG FAST ATTACK
+task.spawn(function()
+    while true do
+        task.wait()
+        if _G.FastAttack then
+            pcall(function()
+                local vu = game:GetService('VirtualUser')
+                vu:CaptureController()
+                vu:ClickButton1(Vector2.new(850, 520))
+                local weapon = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                if weapon then weapon:Activate() end
+            end)
+        end
+    end
+end)
+
+-- HÀM TWEEN 300 MƯỢT
+function TweenTo(pos)
+    local char = game.Players.LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local dist = (pos.Position - char.HumanoidRootPart.Position).Magnitude
+    local tween = TweenService:Create(char.HumanoidRootPart, TweenInfo.new(dist / 300, Enum.EasingStyle.Linear), {CFrame = pos})
+    tween:Play()
+    tween.Completed:Wait()
+end
+
+function EquipWeapon()
+    local lp = game.Players.LocalPlayer
+    for _, tool in pairs(lp.Backpack:GetChildren()) do
+        if tool:IsA("Tool") and (tool.ToolTip == "Melee" or tool.ToolTip == "Sword") then
+            lp.Character.Humanoid:EquipTool(tool)
+            break
+        end
+    end
+end
+
+-- [3] LUỒNG KIỂM TRA BOSS & QUÉT RƯƠNG
+spawn(function()
+    while true do
+        task.wait(0.1)
+        pcall(function()
+            local lp = game.Players.LocalPlayer
+            local char = lp.Character
+            if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+            
+            -- ƯU TIÊN SĂN BOSS
+            local bossName = (currentPlaceId == 4442272183 and "Darkbeard") or (currentPlaceId == 7449423635 and "Dough King")
+            local boss = game.Workspace.Enemies:FindFirstChild(bossName)
+            if boss and boss:FindFirstChild("HumanoidRootPart") and boss.Humanoid.Health > 0 then
+                _G.PauseHop = true _G.FastAttack = true
+                BossLabel.Text = "Boss: ⚔️ Đang đập " .. bossName
+                char.HumanoidRootPart.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 5.5, 0)
+                EquipWeapon()
+            else
+                _G.PauseHop = false _G.FastAttack = false
+                BossLabel.Text = "Boss: Đang chờ mục tiêu..."
+                
+                -- LUỒNG QUÉT RƯƠNG TOÀN MAP
+                local closest = nil
+                local dist = math.huge
+                for _, v in pairs(game.Workspace:GetDescendants()) do
+                    if v:IsA("Part") and (string.find(v.Name, "Chest") or string.find(v.Name, "Box")) and v:FindFirstChild("TouchInterest") then
+                        local mag = (v.Position - char.HumanoidRootPart.Position).Magnitude
+                        if mag < dist then dist = mag; closest = v end
+                    end
+                end
+                
+                if closest then
+                    timeSpent = 0
+                    StatusLabel.Text = "Trạng thái: ✈️ Bay nhặt rương (300)..."
+                    StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+                    TweenTo(closest.CFrame)
+                    
+                    if (char.HumanoidRootPart.Position - closest.Position).Magnitude < 25 then
+                        firetouchinterest(char.HumanoidRootPart, closest, 0)
+                        task.wait(0.02)
+                        firetouchinterest(char.HumanoidRootPart, closest, 1)
+                        
+                        StatusLabel.Text = "Trạng thái: ⏱️ Delay lượm rương (1s)..."
+                        StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+                        task.wait(1)
+                        pcall(function() closest:Destroy() end)
+                    end
+                else
+                    time
