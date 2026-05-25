@@ -1,0 +1,149 @@
+-- Fix link thư viện Orion mới nhất không bị lỗi loadstring
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/ionlyscripthun/Orion-Mobile/main/Source')))()
+
+-- Tạo Cửa sổ chính với cấu hình chuẩn
+local Window = OrionLib:MakeWindow({
+    Name = "🔥 tiktok:hydradat 🔥", 
+    HidePremium = false, 
+    SaveConfig = false, -- Tắt bớt config để tránh lỗi không load được UI
+    IntroText = "tiktok:hydradat Hub"
+})
+
+-- TAB TRANG CHỦ
+local HomeTab = Window:MakeTab({
+    Name = "Trang Chủ",
+    Icon = "rbxassetid://4483362458",
+    PremiumOnly = false
+})
+
+HomeTab:AddSection({
+    Name = "🔥 MENU BY TIKTOK:HYDRADAT 🔥"
+})
+
+HomeTab:AddParagraph("Thông Báo","Chào mừng bạn đến với Script của tiktok:hydradat! Chúc bạn chơi game vui vẻ.")
+
+-- BIẾN HỖ TRỢ FARM
+_G.AutoFarmLv = false
+_G.AutoFarmBone = false
+_G.AutoKatakuri = false
+_G.SelectWeapon = "Melee"
+
+function EquipWeapon()
+    pcall(function()
+        for _, v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
+            if v:IsA("Tool") and (v.ToolTip == _G.SelectWeapon or (_G.SelectWeapon == "Melee" and v.ToolTip == "Combat")) then
+                game.Players.LocalPlayer.Character.Humanoid:EquipTool(v)
+            end
+        end
+    end)
+end
+
+-- TAB AUTO FARM LEVEL
+local FarmTab = Window:MakeTab({
+    Name = "Auto Farm Level",
+    Icon = "rbxassetid://4483362458",
+    PremiumOnly = false
+})
+
+FarmTab:AddDropdown({
+    Name = "Chọn Vũ Khí",
+    Default = "Melee",
+    Options = {"Melee", "Sword", "Blox Fruit"},
+    Callback = function(Value)
+        _G.SelectWeapon = Value
+    end    
+})
+
+FarmTab:AddToggle({
+    Name = "Bật Auto Farm Cấp",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoFarmLv = Value
+        spawn(function()
+            while _G.AutoFarmLv do
+                task.wait(0.1)
+                pcall(function()
+                    local targetMob = "Bandit" 
+                    for _, v in pairs(game.Workspace.Enemies:GetChildren()) do
+                        if v.Name == targetMob and v.Humanoid.Health > 0 then
+                            EquipWeapon()
+                            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
+                            game:GetService('VirtualUser'):CaptureController()
+                            game:GetService('VirtualUser'):ClickButton1(Vector2.new(850, 520))
+                        end
+                    end
+                end)
+            end
+        end)
+    end
+})
+
+-- TAB FARM XƯƠNG
+local BoneTab = Window:MakeTab({
+    Name = "Farm Xương (Bone)",
+    Icon = "rbxassetid://4483362458",
+    PremiumOnly = false
+})
+
+BoneTab:AddToggle({
+    Name = "Auto Farm Xương",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoFarmBone = Value
+        spawn(function()
+            while _G.AutoFarmBone do
+                task.wait(0.1)
+                pcall(function()
+                    local boneMobs = {"Reborn Skeleton", "Living Zombie", "Demonic Soul", "Posessed Mummy"}
+                    for _, mobName in pairs(boneMobs) do
+                        for _, v in pairs(game.Workspace.Enemies:GetChildren()) do
+                            if v.Name == mobName and v.Humanoid.Health > 0 then
+                                EquipWeapon()
+                                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
+                                game:GetService('VirtualUser'):ClickButton1(Vector2.new(850, 520))
+                            end
+                        end
+                    end
+                end)
+            end
+        end)
+    end
+})
+
+-- TAB KATAKURI
+local KataTab = Window:MakeTab({
+    Name = "Farm Katakuri",
+    Icon = "rbxassetid://4483362458",
+    PremiumOnly = false
+})
+
+KataTab:AddToggle({
+    Name = "Auto Katakuri / Cake Prince",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoKatakuri = Value
+        spawn(function()
+            while _G.AutoKatakuri do
+                task.wait(0.1)
+                pcall(function()
+                    local bossName = "Cookie Crafter"
+                    if game.Workspace.Enemies:FindFirstChild("Cake Prince") then
+                        bossName = "Cake Prince"
+                    elseif game.Workspace.Enemies:FindFirstChild("Dough King") then
+                        bossName = "Dough King"
+                    end
+                    for _, v in pairs(game.Workspace.Enemies:GetChildren()) do
+                        if v.Name == bossName and v.Humanoid.Health > 0 then
+                            EquipWeapon()
+                            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, 6, 0)
+                            game:GetService('VirtualUser'):ClickButton1(Vector2.new(850, 520))
+                        end
+                    end
+                end)
+            end
+        end)
+    end
+})
+
+-- Khởi tạo lại Menu
+OrionLib:Init()
