@@ -1,0 +1,364 @@
+-- ==========================================
+-- TỰ ĐỘNG CHỌN PHE HẢI QUÂN & SIÊU GIẢM LAG
+-- ==========================================
+pcall(function()
+    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("SetTeam", "Marines")
+    settings().Rendering.QualityLevel = 1
+    game:GetService("Lighting").GlobalShadows = false
+    for _, v in pairs(game:GetDescendants()) do
+        if v:IsA("Part") or v:IsA("MeshPart") then
+            v.Material = Enum.Material.SmoothPlastic
+        elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") then
+            v:Destroy()
+        end
+    end
+end)
+
+-- ==========================================
+-- GIAO DIỆN CỐ ĐỊNH (KHÔNG THỂ DI CHUYỂN)
+-- ==========================================
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local UIStroke = Instance.new("UIStroke")
+local Title = Instance.new("TextLabel")
+local TimeLabel = Instance.new("TextLabel")
+local StatusLabel = Instance.new("TextLabel")
+
+ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.Name = "HydraDat_ChestHub"
+
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15) 
+MainFrame.Position = UDim2.new(0.02, 0, 0.1, 0)
+MainFrame.Size = UDim2.new(0, 340, 0, 160) 
+MainFrame.Active = false
+MainFrame.Draggable = false 
+
+UIStroke.Parent = MainFrame
+UIStroke.Color = Color3.fromRGB(255, 0, 0) 
+UIStroke.Thickness = 3
+
+Title.Parent = MainFrame
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0, 0, 0.05, 0)
+Title.Size = UDim2.new(1, 0, 0.25, 0)
+Title.Font = Enum.Font.SourceSansBold
+Title.Text = "🔥 tiktok:hydradat 🔥"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 24
+
+StatusLabel.Parent = MainFrame
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Position = UDim2.new(0, 10, 0.35, 0)
+StatusLabel.Size = UDim2.new(1, -20, 0.25, 0)
+StatusLabel.Font = Enum.Font.SourceSansBold
+StatusLabel.Text = "Trạng thái: Khởi động hệ thống..."
+StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+StatusLabel.TextSize = 15
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+TimeLabel.Parent = MainFrame
+TimeLabel.BackgroundTransparency = 1
+TimeLabel.Position = UDim2.new(0, 10, 0.65, 0)
+TimeLabel.Size = UDim2.new(1, -20, 0.25, 0)
+TimeLabel.Font = Enum.Font.SourceSans
+TimeLabel.Text = "Thời gian còn lại: Đang tính toán..."
+TimeLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+TimeLabel.TextSize = 17
+TimeLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- ==========================================
+-- SỬA LỖI ĐỊNH VỊ THỜI GIAN CHUẨN TỪNG SEA
+-- ==========================================
+_G.AutoChest = true
+_G.PauseHop = false 
+_G.FastAttack = false 
+
+local mySea = game.PlaceId
+local timeLeft = 240 -- Mặc định Sea 1 (Phòng vé / 2753915526) luôn là 240s
+
+if mySea == 2753915549 then      -- Kiểm tra chính xác Sea 2
+    timeLeft = 300
+elseif mySea == 7449423635 then  -- Kiểm tra chính xác Sea 3
+    timeLeft = 400
+end
+
+-- Bộ lưu trữ ID phòng chống lặp trùng Server cũ
+if not _G.VisitedServers then
+    _G.VisitedServers = {}
+end
+table.insert(_G.VisitedServers, game.JobId)
+
+local TweenService = game:GetService("TweenService")
+function TweenTo(targetCFrame)
+    local char = game.Players.LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    if char.HumanoidRootPart.Anchored then char.HumanoidRootPart.Anchored = false end
+    
+    local distance = (targetCFrame.Position - char.HumanoidRootPart.Position).Magnitude
+    local speed = 300 
+    local tweenInfo = TweenInfo.new(distance / speed, Enum.EasingStyle.Linear)
+    
+    local tween = TweenService:Create(char.HumanoidRootPart, tweenInfo, {CFrame = targetCFrame})
+    tween:Play()
+    tween.Completed:Wait()
+end
+
+function EquipWeapon()
+    local lp = game.Players.LocalPlayer
+    for _, tool in pairs(lp.Backpack:GetChildren()) do
+        if tool:IsA("Tool") and (tool.ToolTip == "Melee" or tool.ToolTip == "Sword") then
+            lp.Character.Humanoid:EquipTool(tool)
+            break
+        end
+    end
+end
+
+function SetAntiGravity(char)
+    if not char.HumanoidRootPart:FindFirstChild("BodyVelocity") then
+        local bv = Instance.new("BodyVelocity")
+        bv.Velocity = Vector3.new(0, 0, 0)
+        bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        bv.Parent = char.HumanoidRootPart
+    end
+    char.HumanoidRootPart.CanCollide = false
+    char.Humanoid.PlatformStand = true
+end
+
+-- ==========================================
+-- VÒNG LẶP FAST ATTACK TỐC ĐỘ x2 KHỦNG KHIẾP
+-- ==========================================
+task.spawn(function()
+    while true do
+        task.wait() 
+        if _G.FastAttack then
+            pcall(function()
+                local VirtualUser = game:GetService('VirtualUser')
+                VirtualUser:CaptureController()
+                VirtualUser:ClickButton1(Vector2.new(850, 520))
+                
+                local weapon = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                if weapon then
+                    weapon:Activate()
+                end
+            end)
+        end
+    end
+end)
+
+-- ==========================================
+-- SIÊU THUẬT TOÁN: SĂN BOSS & FĂM QUÁI TRÊN ĐẦU
+-- ==========================================
+spawn(function()
+    while true do
+        task.wait(0.05) 
+        pcall(function()
+            local lp = game.Players.LocalPlayer
+            local char = lp.Character
+            
+            -- KHU VỰC SEA 2: TRIỆU HỒI & ĐÁNH RÂU ĐEN
+            if mySea == 2753915549 then 
+                local hasDarkFist = lp.Backpack:FindFirstChild("Fist of Darkness") or char:FindFirstChild("Fist of Darkness")
+                
+                if hasDarkFist then
+                    _G.PauseHop = true
+                    _G.AutoChest = false
+                    
+                    local boss = game.Workspace.Enemies:FindFirstChild("Darkbeard")
+                    if not boss then
+                        _G.FastAttack = false
+                        StatusLabel.Text = "🚨 Trạng thái: Đang đi triệu hồi Râu Đen..."
+                        StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 0)
+                        if lp.Backpack:FindFirstChild("Fist of Darkness") then
+                            char.Humanoid:EquipTool(lp.Backpack["Fist of Darkness"])
+                        end
+                        TweenTo(CFrame.new(-3715, 16, -5150))
+                    else
+                        StatusLabel.Text = "⚔️ Trạng thái: Đang đánh Râu Đen..."
+                        StatusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+                        SetAntiGravity(char)
+                        
+                        -- Cố định đỉnh đầu, mặt hướng vuông góc xuống dưới để nện sát thương
+                        char.HumanoidRootPart.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 11, 0) * CFrame.Angles(math.rad(-90), 0, 0)
+                        EquipWeapon()
+                        _G.FastAttack = true
+                    end
+                else
+                    _G.FastAttack = false
+                end
+                
+            -- KHU VỰC SEA 3: TRIỆU HỒI & ĐÁNH KATA V2
+            elseif mySea == 7449423635 then 
+                local hasChalice = lp.Backpack:FindFirstChild("God's Chalice") or char:FindFirstChild("God's Chalice")
+                local hasSweet = lp.Backpack:FindFirstChild("Sweet Chalice") or char:FindFirstChild("Sweet Chalice")
+                
+                if hasChalice or hasSweet then
+                    _G.PauseHop = true
+                    _G.AutoChest = false
+                    
+                    if hasChalice and not hasSweet then
+                        local cocoaCount = 0
+                        local cocoa = lp.Backpack:FindFirstChild("Conjured Cocoa") or char:FindFirstChild("Conjured Cocoa")
+                        if cocoa then cocoaCount = cocoa.Value end
+                        
+                        if cocoaCount < 10 then
+                            StatusLabel.Text = "🍫 Trạng thái: Đang farm Kata v2 (Tìm cacao: "..cocoaCount.."/10)..."
+                            StatusLabel.TextColor3 = Color3.fromRGB(255, 150, 150)
+                            
+                            for _, enemy in pairs(game.Workspace.Enemies:GetChildren()) do
+                                if (string.find(enemy.Name, "Cocoa") or string.find(enemy.Name, "Chocolate")) and enemy:FindFirstChild("HumanoidRootPart") and enemy.Humanoid.Health > 0 then
+                                    SetAntiGravity(char)
+                                    char.HumanoidRootPart.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0, 11, 0) * CFrame.Angles(math.rad(-90), 0, 0)
+                                    EquipWeapon()
+                                    _G.FastAttack = true 
+                                    break
+                                end
+                            end
+                        else
+                            _G.FastAttack = false
+                            StatusLabel.Text = "🥛 Trạng thái: Đang farm Kata v2 (Đổi chén ngọt)..."
+                            TweenTo(CFrame.new(-2125, 68, -12122))
+                            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("SweetCrafter", "Exchange")
+                        end
+                        
+                    elseif hasSweet then
+                        local killCount = game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("CakeLandProgress") or 0
+                        local boss = game.Workspace.Enemies:FindFirstChild("Dough King") or game.Workspace.Enemies:FindFirstChild("Cake Prince")
+                        
+                        if killCount < 500 and not boss then
+                            StatusLabel.Text = "🍰 Trạng thái: Đang farm Kata v2 (Quái đảo bánh: "..killCount.."/500)..."
+                            StatusLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+                            
+                            for _, enemy in pairs(game.Workspace.Enemies:GetChildren()) do
+                                if enemy.Parent.Name == "Enemies" and enemy:FindFirstChild("HumanoidRootPart") and enemy.Humanoid.Health > 0 then
+                                    SetAntiGravity(char)
+                                    char.HumanoidRootPart.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0, 11, 0) * CFrame.Angles(math.rad(-90), 0, 0)
+                                    EquipWeapon()
+                                    _G.FastAttack = true 
+                                    break
+                                end
+                            end
+                        else
+                            if not boss then
+                                _G.FastAttack = false
+                                StatusLabel.Text = "🔮 Trạng thái: Đang farm Kata v2 (Kích hoạt bệ cổng)..."
+                                if lp.Backpack:FindFirstChild("Sweet Chalice") then
+                                    char.Humanoid:EquipTool(lp.Backpack["Sweet Chalice"])
+                                end
+                                TweenTo(CFrame.new(-2320, 68, -12150))
+                            else
+                                StatusLabel.Text = "⚔️ Trạng thái: Đang đánh Kata v2..."
+                                StatusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+                                SetAntiGravity(char)
+                                
+                                char.HumanoidRootPart.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 11, 0) * CFrame.Angles(math.rad(-90), 0, 0)
+                                EquipWeapon()
+                                _G.FastAttack = true 
+                            end
+                        end
+                    end
+                else
+                    _G.FastAttack = false
+                end
+            end
+        end)
+    end
+end)
+
+-- ==========================================
+-- VÒNG LẶP QUÉT VÀ BAY ĐI NHẶT RƯƠNG THÔNG MINH
+-- ==========================================
+spawn(function()
+    while true do
+        task.wait(0.5)
+        if _G.AutoChest and not _G.PauseHop then
+            pcall(function()
+                local lp = game.Players.LocalPlayer
+                local char = lp.Character
+                if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Humanoid") then
+                    
+                    local chestTable = {}
+                    for _, v in pairs(game.Workspace:GetDescendants()) do
+                        if string.find(v.Name, "Chest") and v:IsA("Part") then
+                            table.insert(chestTable, v)
+                        end
+                    end
+                    
+                    table.sort(chestTable, function(a, b)
+                        local distA = (a.Position - char.HumanoidRootPart.Position).Magnitude
+                        local distB = (b.Position - char.HumanoidRootPart.Position).Magnitude
+                        return distA < distB 
+                    end)
+                    
+                    if #chestTable > 0 then
+                        StatusLabel.Text = "Trạng thái: Đang farm rương gần -> xa..."
+                        StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+                        for _, chest in pairs(chestTable) do
+                            if chest and chest.Parent and _G.AutoChest and not _G.PauseHop then
+                                
+                                SetAntiGravity(char)
+                                TweenTo(chest.CFrame)
+                                task.wait(0.15)
+                            end
+                        end
+                    else
+                        StatusLabel.Text = "Trạng thái: Hết rương, chờ nhảy phòng..."
+                        StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        char.Humanoid.PlatformStand = false
+                        if char.HumanoidRootPart:FindFirstChild("BodyVelocity") then
+                            char.HumanoidRootPart.BodyVelocity:Destroy()
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- ==========================================
+-- BỘ ĐẾM NGƯỢC & SIÊU THUẬT TOÁN CHỐNG TRÙNG SERVER
+-- ==========================================
+spawn(function()
+    while true do
+        task.wait(1)
+        if not _G.PauseHop then
+            if timeLeft > 0 then
+                timeLeft = timeLeft - 1
+                TimeLabel.Text = "Thời gian còn lại ở SV này: " .. tostring(timeLeft) .. "s"
+            else
+                TimeLabel.Text = "🚀 ĐANG LỌC SERVER KHÔNG TRÙNG..."
+                task.wait(0.5)
+                
+                local HttpService = game:GetService("HttpService")
+                local TeleportService = game:GetService("TeleportService")
+                local PlaceId = game.PlaceId
+                
+                pcall(function()
+                    local rawData = game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Asc&limit=100")
+                    local servers = HttpService:JSONDecode(rawData)
+                    
+                    for _, server in pairs(servers.data) do
+                        if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                            
+                            local isOldServer = false
+                            for _, oldId in pairs(_G.VisitedServers) do
+                                if server.id == oldId then
+                                    isOldServer = true
+                                    break
+                                end
+                            end
+                            
+                            if not isOldServer then
+                                table.insert(_G.VisitedServers, server.id) 
+                                TeleportService:TeleportToPlaceInstance(PlaceId, server.id, game.Players.LocalPlayer)
+                                break
+                            end
+                        end
+                    end
+                end)
+            end
+        else
+            TimeLabel.Text = "⏸️ ĐÃ KHÓA HOP (Đang làm Event Boss)"
+        end
+    end
+end)
