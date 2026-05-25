@@ -1,0 +1,371 @@
+-- ==========================================================
+-- SCRIPT PREMIUM 3 SEA: MENU VIỀN ĐỎ + KILL AURA TẦM CAO + FAST ATTACK X2 + AUTO CÀY 10 CACOA & CHECK KATA V2
+-- ==========================================================
+
+-- [1] SIÊU GIẢM LAG & TỰ ĐỘNG VÀO PHE
+pcall(function()
+    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("SetTeam", "Marines")
+    settings().Rendering.QualityLevel = 1
+    game:GetService("Lighting").GlobalShadows = false
+    for _, v in pairs(game:GetDescendants()) do
+        if v:IsA("Part") or v:IsA("MeshPart") then
+            v.Material = Enum.Material.SmoothPlastic
+        elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") then
+            v:Destroy()
+        end
+    end
+end)
+
+-- [2] GIAO DIỆN HỘP THOẠI VIỀN ĐỎ (CHIẾM ~25/100 MÀN HÌNH THEO TỶ LỆ DỌC)
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local UIStroke = Instance.new("UIStroke")
+local Title = Instance.new("TextLabel")
+local StatusLabel = Instance.new("TextLabel")
+local BossLabel = Instance.new("TextLabel")
+local ServerLabel = Instance.new("TextLabel")
+
+ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.Name = "HydraDat_ProHub_3Sea"
+
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.BackgroundTransparency = 0.1
+MainFrame.Position = UDim2.new(0.02, 0, 0.1, 0)
+MainFrame.Size = UDim2.new(0, 330, 0, 180) 
+
+UIStroke.Parent = MainFrame
+UIStroke.Color = Color3.fromRGB(255, 0, 0) 
+UIStroke.Thickness = 3
+
+Title.Parent = MainFrame
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0, 0, 0.05, 0)
+Title.Size = UDim2.new(1, 0, 0.2, 0)
+Title.Font = Enum.Font.SourceSansBold
+Title.Text = "🔥 tiktok:hydradat 🔥"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 22
+
+StatusLabel.Parent = MainFrame
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Position = UDim2.new(0, 15, 0.3, 0)
+StatusLabel.Size = UDim2.new(1, -30, 0.18, 0)
+StatusLabel.Font = Enum.Font.SourceSansBold
+StatusLabel.Text = "Trạng thái: Đang phân tích Sea..."
+StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+StatusLabel.TextSize = 14
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+BossLabel.Parent = MainFrame
+BossLabel.BackgroundTransparency = 1
+BossLabel.Position = UDim2.new(0, 15, 0.5, 0)
+BossLabel.Size = UDim2.new(1, -30, 0.18, 0)
+BossLabel.Font = Enum.Font.SourceSansBold
+BossLabel.Text = "Săn Boss: Đang quét mục tiêu..."
+BossLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+BossLabel.TextSize = 14
+BossLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+ServerLabel.Parent = MainFrame
+ServerLabel.BackgroundTransparency = 1
+ServerLabel.Position = UDim2.new(0, 15, 0.7, 0)
+ServerLabel.Size = UDim2.new(1, -30, 0.18, 0)
+ServerLabel.Font = Enum.Font.SourceSansBold
+ServerLabel.Text = "Nhiệm vụ: Chờ kiểm tra vật phẩm..."
+ServerLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+ServerLabel.TextSize = 14
+ServerLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- [3] CẤU HÌNH BIẾN TOÀN CỤC
+_G.AutoChest = true
+_G.PauseHop = false 
+_G.FastAttack = false 
+_G.KillAura = false
+_G.ForceHopNow = false 
+
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local mySea = game.PlaceId
+
+if not _G.VisitedServers then _G.VisitedServers = {} end
+table.insert(_G.VisitedServers, game.JobId)
+
+-- Hàm chặn đảo ngầm/đảo dưới nước (Tránh chết đuối)
+function IsIslandSafe(chestPos)
+    if chestPos.Y < -150 then return false end
+    if mySea == 7449423635 and (chestPos - Vector3.new(-2125, 68, -12122)).Magnitude < 3000 then return false end
+    return true
+end
+
+-- [4] LUỒNG ĐỒNG BỘ TỐC ĐỘ ĐÁNH X2 + KILL AURA (CHO CẢ BOSS & CÀY QUÁI KATA)
+task.spawn(function()
+    while true do
+        task.wait() 
+        if _G.FastAttack then
+            pcall(function()
+                local VirtualUser = game:GetService('VirtualUser')
+                VirtualUser:CaptureController()
+                -- Đúp lệnh kích hoạt vũ khí (x2 tốc độ đánh thực tế)
+                VirtualUser:ClickButton1(Vector2.new(850, 520))
+                VirtualUser:ClickButton1(Vector2.new(850, 520))
+                
+                local weapon = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                if weapon then 
+                    weapon:Activate() 
+                    weapon:Activate() 
+                end
+            end)
+        end
+    end
+end)
+
+function EquipWeapon()
+    local lp = game.Players.LocalPlayer
+    for _, tool in pairs(lp.Backpack:GetChildren()) do
+        if tool:IsA("Tool") and (tool.ToolTip == "Melee" or tool.ToolTip == "Sword") then
+            lp.Character.Humanoid:EquipTool(tool)
+            break
+        end
+    end
+end
+
+-- Hàm đếm số lượng Bột Cacao trong túi đồ
+function GetCocoaCount()
+    local count = 0
+    pcall(function()
+        local inventory = game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("getInventory")
+        for _, item in pairs(inventory) do
+            if item.Name == "Conjured Cocoa" then
+                count = item.Count
+            end
+        end
+    end)
+    return count
+end
+
+-- Hàm lấy số lượng quái còn lại để gọi Katakuri V2 từ NPC Drip Mama
+function GetKataV2Progress()
+    local progress = "Chưa rõ"
+    pcall(function()
+        -- Quét hội thoại ẩn từ hệ thống game để lấy số lượng quái chính xác
+        local lines = game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("CakeGovernor", "Check")
+        if lines and string.find(lines, "%d+") then
+            progress = string.match(lines, "%d+")
+        end
+    end)
+    return progress
+end
+
+-- [5] LUỒNG XỬ LÝ NHIỆM VỤ ĐẶC BIỆT THEO TỪNG SEA (SĂN RÂU ĐEN X2 SPEED & CÀY KATA V2)
+spawn(function()
+    while true do
+        task.wait(0.1)
+        pcall(function()
+            local lp = game.Players.LocalPlayer
+            local char = lp.Character
+            if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+            
+            ----------------------------------------------------------
+            -- XỬ LÝ TẠI SEA 2 (ID: 4442272183) -> SĂN RÂU ĐEN TẦM CAO X2 SPEED
+            ----------------------------------------------------------
+            if mySea == 4442272183 then
+                local darkbeard = game.Workspace.Enemies:FindFirstChild("Darkbeard")
+                if darkbeard and darkbeard:FindFirstChild("HumanoidRootPart") and darkbeard.Humanoid.Health > 0 then
+                    _G.PauseHop = true
+                    _G.AutoChest = false
+                    _G.FastAttack = true
+                    
+                    StatusLabel.Text = "Trạng thái: ĐẬP RÂU ĐEN (SEA 2)"
+                    StatusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+                    BossLabel.Text = "Kill Aura: Cách đầu Boss ~5 Studs (1 NPC)"
+                    BossLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+                    
+                    -- Dịch chuyển lơ lửng trên đầu boss chính xác bằng chiều cao 1 NPC (~5 studs)
+                    char.HumanoidRootPart.CFrame = darkbeard.HumanoidRootPart.CFrame * CFrame.new(0, 5.5, 0)
+                    EquipWeapon()
+                else
+                    _G.PauseHop = false
+                    _G.AutoChest = true
+                    _G.FastAttack = false
+                    BossLabel.Text = "Săn Boss: Đang chờ Râu Đen xuất hiện..."
+                    BossLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                end
+                ServerLabel.Text = "Nhiệm vụ: Đã tối ưu hóa nhặt rương Sea 2"
+            
+            ----------------------------------------------------------
+            -- XỬ LÝ TẠI SEA 3 (ID: 7449423635) -> CÀY COCOA & TRUY VẾT KATA V2
+            ----------------------------------------------------------
+            elseif mySea == 7449423635 then
+                local cocoaCount = GetCocoaCount()
+                local mobsLeft = GetKataV2Progress()
+                
+                ServerLabel.Text = "Cacao: " .. cocoaCount .. "/10 | Còn lại: " .. mobsLeft .. " quái"
+                ServerLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+                
+                -- TH1: Nếu chưa đủ 10 bột Cacao -> Tự động dừng lượm rương để cày quái Đảo Bánh trước
+                if cocoaCount < 10 then
+                    _G.PauseHop = true
+                    _G.AutoChest = false
+                    _G.FastAttack = true
+                    StatusLabel.Text = "Trạng thái: Đang cày 10 bột Cacao..."
+                    StatusLabel.TextColor3 = Color3.fromRGB(255, 150, 0)
+                    
+                    -- Tìm quái rơi bột cacao trên đảo bánh (Cocoa Warrior hoặc Chocolate Bar Battler)
+                    local targetMob = nil
+                    for _, enemy in pairs(game.Workspace.Enemies:GetChildren()) do
+                        if (string.find(enemy.Name, "Cocoa") or string.find(enemy.Name, "Chocolate")) and enemy:FindFirstChild("HumanoidRootPart") and enemy.Humanoid.Health > 0 then
+                            targetMob = enemy
+                            break
+                        end
+                    end
+                    
+                    if targetMob then
+                        -- Treo máy Kill Aura ngay phía trên đầu quái để farm an toàn
+                        char.HumanoidRootPart.CFrame = targetMob.HumanoidRootPart.CFrame * CFrame.new(0, 5.5, 0)
+                        EquipWeapon()
+                    else
+                        -- Nếu không thấy quái, di chuyển tới bãi quái Đảo Bánh để kích hoạt spawn
+                        char.HumanoidRootPart.CFrame = CFrame.new(-2125, 70, -12122)
+                    end
+                else
+                    -- TH2: Đã đủ 10 bột Cacao -> Quay lại nhặt rương, nếu phát hiện có quái Kata V2 thì vào đập
+                    _G.PauseHop = false
+                    _G.AutoChest = true
+                    
+                    local doughKing = game.Workspace.Enemies:FindFirstChild("Dough King") or game.Workspace.Enemies:FindFirstChild("Cake Prince")
+                    if doughKing and doughKing:FindFirstChild("HumanoidRootPart") and doughKing.Humanoid.Health > 0 then
+                        _G.PauseHop = true
+                        _G.AutoChest = false
+                        _G.FastAttack = true
+                        
+                        StatusLabel.Text = "Trạng thái: ĐANG ĐẬP KATAKURI V2!"
+                        StatusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+                        char.HumanoidRootPart.CFrame = doughKing.HumanoidRootPart.CFrame * CFrame.new(0, 5.5, 0)
+                        EquipWeapon()
+                    else
+                        _G.FastAttack = false
+                    end
+                end
+            else
+                -- Các Sea khác (Sea 1) hoạt động nhặt rương cơ bản
+                ServerLabel.Text = "Nhiệm vụ: Không có mục tiêu đặc biệt"
+            end
+        end)
+    end
+end)
+
+-- [6] LUỒNG CHUYÊN BAY NHẶT RƯƠNG (CHỈ CHẠY KHI ĐÃ ĐỦ ĐIỀU KIỆN AN TOÀN)
+local TweenService = game:GetService("TweenService")
+function TweenTo(targetCFrame)
+    local char = game.Players.LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    
+    local distance = (targetCFrame.Position - char.HumanoidRootPart.Position).Magnitude
+    local speed = 320 
+    local tweenInfo = TweenInfo.new(distance / speed, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(char.HumanoidRootPart, tweenInfo, {CFrame = targetCFrame})
+    
+    tween:Play()
+    
+    local completed = false
+    local connection
+    connection = tween.Completed:Connect(function()
+        completed = true
+        if connection then connection:Disconnect() end
+    end)
+    
+    local timeout = (distance / speed) + 0.5
+    local start = os.clock()
+    while not completed and (os.clock() - start) < timeout do
+        if _G.PauseHop then tween:Cancel(); break end 
+        task.wait()
+    end
+    
+    if not completed then
+        tween:Cancel()
+        if connection then connection:Disconnect() end
+    end
+end
+
+spawn(function()
+    while true do
+        task.wait(0.05)
+        if _G.AutoChest and not _G.PauseHop then
+            pcall(function()
+                local lp = game.Players.LocalPlayer
+                local char = lp.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    
+                    local closest = nil
+                    local dist = 9999
+                    
+                    for _, v in pairs(game.Workspace:GetDescendants()) do
+                        if v:IsA("Part") and (string.find(v.Name, "Chest") or string.find(v.Name, "Box")) then
+                            if IsIslandSafe(v.Position) and v:FindFirstChild("TouchInterest") then
+                                local mag = (v.Position - char.HumanoidRootPart.Position).Magnitude
+                                if mag < dist then
+                                    dist = mag
+                                    closest = v
+                                end
+                            elseif not v:FindFirstChild("TouchInterest") then
+                                v:Destroy()
+                            end
+                        end
+                    end
+                    
+                    if closest then
+                        _G.ForceHopNow = false
+                        StatusLabel.Text = "Trạng thái: ✈️ Bay lượm rương an toàn..."
+                        StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+                        
+                        TweenTo(closest.CFrame)
+                        
+                        if (char.HumanoidRootPart.Position - closest.Position).Magnitude < 15 then
+                            firetouchinterest(char.HumanoidRootPart, closest, 0)
+                            task.wait(0.02)
+                            firetouchinterest(char.HumanoidRootPart, closest, 1)
+                            closest:Destroy() 
+                        end
+                    else
+                        _G.ForceHopNow = true
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- [7] LUỒNG ĐIỀU PHỐI ĐỔI SERVER (HOP SERVER)
+function PublicServerHop()
+    StatusLabel.Text = "Trạng thái: 🚀 ĐANG ĐỔI SERVER MỚI..."
+    StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+    local lp = game.Players.LocalPlayer
+    pcall(function()
+        local rawData = game:HttpGet("https://games.roblox.com/v1/games/" .. mySea .. "/servers/Public?sortOrder=Asc&limit=100")
+        local servers = HttpService:JSONDecode(rawData)
+        for _, server in pairs(servers.data) do
+            if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                local isOldServer = false
+                for _, oldId in pairs(_G.VisitedServers) do
+                    if server.id == oldId then isOldServer = true break end
+                end
+                if not isOldServer then
+                    table.insert(_G.VisitedServers, server.id) 
+                    TeleportService:TeleportToPlaceInstance(mySea, server.id, lp)
+                    return
+                end
+            end
+        end
+    end)
+end
+
+spawn(function()
+    while true do
+        task.wait(0.5)
+        if not _G.PauseHop and _G.ForceHopNow then
+            _G.ForceHopNow = false
+            PublicServerHop()
+        end
+    end
+end)
