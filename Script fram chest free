@@ -1,0 +1,95 @@
+-- ==========================================================
+-- SCRIPT AUTO CHEST: TỰ ĐỘNG LỌC ĐẢO NGẦM (SEA 1, 2, 3)
+-- ==========================================================
+
+-- [1] CẤU HÌNH BIẾN TOÀN CỤC & TỰ ĐỘNG NHẬN DIỆN SEA
+_G.AutoChest = true
+_G.PauseHop = false
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local mySea = game.PlaceId
+
+-- Hàm kiểm tra độ cao an toàn (Chặn rương dưới nước/đảo ngầm)
+function IsIslandSafe(chestPos)
+    -- Ở hầu hết các Sea, mặt nước biển nằm ở Y khoảng 0 đến -50.
+    -- Bất kỳ rương nào nằm sâu dưới -150 đều là rương ở Đảo Người Cá hoặc hang ngầm nguy hiểm.
+    if chestPos.Y < -150 then
+        return false -- Chặn đảo ngầm
+    end
+    
+    -- Chặn thêm các khu vực đặc biệt nếu là Sea 3 (Update mới)
+    if mySea == 7449423635 then
+        if (chestPos - Vector3.new(-2125, 68, -12122)).Magnitude < 2000 then return false end -- Chặn Đảo Bánh
+    end
+    
+    return true
+end
+
+-- [2] THUẬT TOÁN BAY NHẶT RƯƠNG THÔNG MINH
+spawn(function()
+    while true do
+        task.wait(0.1)
+        if _G.AutoChest and not _G.PauseHop then
+            pcall(function()
+                local lp = game.Players.LocalPlayer
+                local char = lp.Character
+                if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+                
+                local closest = nil
+                local dist = 9999
+                
+                for _, v in pairs(game.Workspace:GetDescendants()) do
+                    if v:IsA("Part") and (string.find(v.Name, "Chest") or string.find(v.Name, "Box")) then
+                        
+                        -- KIỂM TRA ĐẢO CÓ AN TOÀN KHÔNG
+                        if IsIslandSafe(v.Position) and v:FindFirstChild("TouchInterest") then
+                            local mag = (v.Position - char.HumanoidRootPart.Position).Magnitude
+                            if mag < dist then
+                                dist = mag
+                                closest = v
+                            end
+                        elseif not v:FindFirstChild("TouchInterest") then
+                            v:Destroy() -- Xóa rương lỗi
+                        end
+                    end
+                end
+                
+                if closest then
+                    -- Bay đến rương
+                    local tween = game:GetService("TweenService"):Create(char.HumanoidRootPart, TweenInfo.new((closest.Position - char.HumanoidRootPart.Position).Magnitude / 320, Enum.EasingStyle.Linear), {CFrame = closest.CFrame})
+                    tween:Play()
+                    tween.Completed:Wait()
+                    
+                    -- Nhặt rương
+                    firetouchinterest(char.HumanoidRootPart, closest, 0)
+                    task.wait(0.05)
+                    firetouchinterest(char.HumanoidRootPart, closest, 1)
+                end
+            end)
+        end
+    end
+end)
+
+-- [3] THUẬT TOÁN NHẢY SERVER TỰ ĐỘNG
+spawn(function()
+    while true do
+        task.wait(10)
+        -- Kiểm tra nếu rương quá ít hoặc đã nhặt hết
+        local chestCount = 0
+        for _, v in pairs(game.Workspace:GetDescendants()) do
+            if v:IsA("Part") and (string.find(v.Name, "Chest") or string.find(v.Name, "Box")) then
+                chestCount = chestCount + 1
+            end
+        end
+        
+        if chestCount < 3 and not _G.PauseHop then
+            -- Hop server
+            local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. mySea .. "/servers/Public?sortOrder=Asc&limit=100"))
+            for _, s in pairs(servers.data) do
+                if s.playing < s.maxPlayers and s.id ~= game.JobId then
+                    TeleportService:TeleportToPlaceInstance(mySea, s.id, lp)
+                end
+            end
+        end
+    end
+end)
