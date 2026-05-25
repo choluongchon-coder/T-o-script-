@@ -1,0 +1,91 @@
+-- ==========================================================
+-- SCRIPT FULL: MENU GỐC + TELE THẲNG RƯƠNG + FIX RƯƠNG MA
+-- ==========================================================
+
+-- [1] TỐI ƯU HỆ THỐNG
+pcall(function()
+    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("SetTeam", "Marines")
+    settings().Rendering.QualityLevel = 1
+    game:GetService("Lighting").GlobalShadows = false
+end)
+
+-- [2] KHỞI TẠO MENU (Giống menu cũ của bạn)
+local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+local MainFrame = Instance.new("Frame", ScreenGui)
+local UIStroke = Instance.new("UIStroke", MainFrame)
+local Title = Instance.new("TextLabel", MainFrame)
+MainFrame.Size = UDim2.new(0, 300, 0, 100); MainFrame.Position = UDim2.new(0.05, 0, 0.1, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15); UIStroke.Color = Color3.fromRGB(255, 0, 0)
+Title.Text = "HYDRA DAT: AUTO CHEST"; Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Size = UDim2.new(1, 0, 1, 0); Title.BackgroundTransparency = 1
+
+-- [3] HÀM FARM RƯƠNG THÔNG MINH
+_G.AutoChest = true
+spawn(function()
+    while task.wait(0.1) do
+        if _G.AutoChest then
+            pcall(function()
+                local lp = game.Players.LocalPlayer
+                local char = lp.Character
+                if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+                
+                local closest = nil
+                local dist = 9999
+                
+                -- Quét tìm rương
+                for _, v in pairs(game.Workspace:GetDescendants()) do
+                    if v:IsA("Part") and (string.find(v.Name, "Chest") or string.find(v.Name, "Box")) then
+                        local mag = (v.Position - char.HumanoidRootPart.Position).Magnitude
+                        if mag < dist then dist = mag; closest = v end
+                    end
+                end
+                
+                if closest then
+                    -- TELE THẲNG VÀO TÂM RƯƠNG
+                    char.HumanoidRootPart.CFrame = closest.CFrame
+                    
+                    -- KIỂM TRA "RƯƠNG MA"
+                    -- Nếu rương không có sự kiện Touch thì chắc chắn đã bị người khác nhặt
+                    if not closest:FindFirstChild("TouchInterest") then
+                        closest:Destroy() -- Xóa rương ma ngay
+                    else
+                        firetouchinterest(char.HumanoidRootPart, closest, 0)
+                        firetouchinterest(char.HumanoidRootPart, closest, 1)
+                        task.wait(0.2)
+                        if closest then closest:Destroy() end
+                    end
+                else
+                    -- NHẢY SERVER NẾU KHÔNG CÒN RƯƠNG
+                    local HttpService = game:GetService("HttpService")
+                    local TeleportService = game:GetService("TeleportService")
+                    local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
+                    for _, s in pairs(servers.data) do
+                        if s.playing < s.maxPlayers and s.id ~= game.JobId then
+                            TeleportService:TeleportToPlaceInstance(game.PlaceId, s.id, lp)
+                            break
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- [4] SĂN BOSS (Giữ nguyên logic của bạn)
+spawn(function()
+    while task.wait(0.5) do
+        pcall(function()
+            local boss = game.Workspace.Enemies:FindFirstChild("Darkbeard") or 
+                         game.Workspace.Enemies:FindFirstChild("Dough King") or 
+                         game.Workspace.Enemies:FindFirstChild("Cake Prince")
+            if boss then
+                _G.AutoChest = false -- Tạm dừng farm rương để đánh boss
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
+                local tool = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                if tool then tool:Activate() end
+            else
+                _G.AutoChest = true
+            end
+        end)
+    end
+end)
