@@ -1,0 +1,101 @@
+-- ==========================================
+-- SIÊU GIẢM LAG & TỰ CHỌN HẢI QUÂN
+-- ==========================================
+pcall(function()
+    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("SetTeam", "Marines")
+    
+    -- Xóa chi tiết thừa để giảm tải tối đa cho CPU/RAM khi nhảy server
+    settings().Rendering.QualityLevel = 1
+    game:GetService("Lighting").GlobalShadows = false
+    for _, v in pairs(game:GetDescendants()) do
+        if v:IsA("Part") or v:IsA("MeshPart") then
+            v.Material = Enum.Material.SmoothPlastic
+        elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") then
+            v:Destroy()
+        end
+    end
+end)
+
+-- Khởi tạo Orion UI Library (Giao diện chuẩn Đen - Viền Đỏ Neon)
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/ionlyscripthun/Orion-Mobile/main/Source')))()
+
+local Window = OrionLib:MakeWindow({
+    Name = "🔥 tiktok:hydradat 🔥", 
+    HidePremium = false, 
+    SaveConfig = false, 
+    IntroText = "Bypass Chest v2 - tiktok:hydradat"
+})
+
+-- TAB CHÍNH
+local MainTab = Window:MakeTab({
+    Name = "Bypass Rương",
+    Icon = "rbxassetid://4483362458",
+    PremiumOnly = false
+})
+
+MainTab:AddSection({
+    Name = "🔥 TRẠNG THÁI SCRIPT CHẠY NGẦM 🔥"
+})
+
+local TimeLabel = MainTab:AddLabel("Thời gian còn lại ở SV này: 30s")
+
+-- ==========================================
+-- PHƯƠNG PHÁP BYPASS RƯƠNG NÂNG CẤP (TỪ SCRIPT KHÁC)
+-- ==========================================
+_G.BypassChest = true
+
+spawn(function()
+    while _G.BypassChest do
+        task.wait()
+        pcall(function()
+            local lp = game.Players.LocalPlayer
+            local char = lp.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                -- Tìm tất cả rương có trong vùng chứa được thiết lập của game
+                for _, chest in pairs(game.Workspace:GetChildren()) do
+                    if string.find(chest.Name, "Chest") and chest:IsA("Part") then
+                        -- Cơ chế gán tọa độ tức thời kết hợp tắt va chạm (No-Clip Bypass)
+                        char.HumanoidRootPart.CanCollide = false
+                        char.HumanoidRootPart.CFrame = chest.CFrame
+                        
+                        -- Kích hoạt nhận tiền từ rương ngay lập tức không cần chờ đợi hoãn thời gian dài
+                        firetouchinterest(char.HumanoidRootPart, chest, 0)
+                        firetouchinterest(char.HumanoidRootPart, chest, 1)
+                        task.wait(0.08) -- Tốc độ cực hạn (Chỉ mất 0.08 giây cho 1 rương)
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+-- ==========================================
+-- TỰ ĐỘNG ĐẾM NGƯỢC 30 GIÂY & ĐỔI SERVER (SERVER HOP)
+-- ==========================================
+spawn(function()
+    local timeLeft = 30
+    while timeLeft > 0 do
+        task.wait(1)
+        timeLeft = timeLeft - 1
+        TimeLabel:Set("Thời gian còn lại ở SV này: " .. tostring(timeLeft) .. "s")
+    end
+    
+    TimeLabel:Set("🚀 ĐANG HOP SERVER MỚI...")
+    task.wait(0.2)
+    
+    local HttpService = game:GetService("HttpService")
+    local TeleportService = game:GetService("TeleportService")
+    local PlaceId = game.PlaceId
+    
+    pcall(function()
+        local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+        for _, server in pairs(servers.data) do
+            if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                TeleportService:TeleportToPlaceInstance(PlaceId, server.id, game.Players.LocalPlayer)
+                break
+            end
+        end
+    end)
+end)
+
+OrionLib:Init()
