@@ -1,0 +1,218 @@
+-- ==========================================
+-- TỰ ĐỘNG CHỌN PHE HẢI QUÂN & SIÊU GIẢM LAG
+-- ==========================================
+pcall(function()
+    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("SetTeam", "Marines")
+    settings().Rendering.QualityLevel = 1
+    game:GetService("Lighting").GlobalShadows = false
+    for _, v in pairs(game:GetDescendants()) do
+        if v:IsA("Part") or v:IsA("MeshPart") then
+            v.Material = Enum.Material.SmoothPlastic
+        elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") then
+            v:Destroy()
+        end
+    end
+end)
+
+-- ==========================================
+-- GIAO DIỆN CHUẨN (NỀN ĐEN - VIỀN ĐỎ - TÊN CHUẨN)
+-- ==========================================
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local UIStroke = Instance.new("UIStroke")
+local Title = Instance.new("TextLabel")
+local TimeLabel = Instance.new("TextLabel")
+local StatusLabel = Instance.new("TextLabel")
+
+ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.Name = "HydraDat_ChestHub"
+
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15) 
+MainFrame.Position = UDim2.new(0.05, 0, 0.1, 0)
+MainFrame.Size = UDim2.new(0, 320, 0, 150) -- Tăng chiều cao để hiện trạng thái Boss
+MainFrame.Active = true
+MainFrame.Draggable = true 
+
+UIStroke.Parent = MainFrame
+UIStroke.Color = Color3.fromRGB(255, 0, 0) 
+UIStroke.Thickness = 3
+
+Title.Parent = MainFrame
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0, 0, 0.05, 0)
+Title.Size = UDim2.new(1, 0, 0.25, 0)
+Title.Font = Enum.Font.SourceSansBold
+Title.Text = "🔥 tiktok:hydradat 🔥"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 24
+
+StatusLabel.Parent = MainFrame
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Position = UDim2.new(0, 0, 0.35, 0)
+StatusLabel.Size = UDim2.new(1, 0, 0.25, 0)
+StatusLabel.Font = Enum.Font.SourceSansBold
+StatusLabel.Text = "Trạng thái: Đang quét rương..."
+StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+StatusLabel.TextSize = 16
+
+TimeLabel.Parent = MainFrame
+TimeLabel.BackgroundTransparency = 1
+TimeLabel.Position = UDim2.new(0, 0, 0.65, 0)
+TimeLabel.Size = UDim2.new(1, 0, 0.25, 0)
+TimeLabel.Font = Enum.Font.SourceSans
+TimeLabel.Text = "Thời gian còn lại ở SV này: 150s"
+TimeLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+TimeLabel.TextSize = 18
+
+-- ==========================================
+-- CÁC BIẾN KIỂM SOÁT (VARIABLES)
+-- ==========================================
+_G.AutoChest = true
+_G.PauseHop = false -- Biến kiểm soát dừng đổi server khi có key Râu Đen
+local timeLeft = 150
+
+-- Hàm Tween di chuyển
+local TweenService = game:GetService("TweenService")
+function TweenToChest(targetCFrame)
+    local char = game.Players.LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    if char.HumanoidRootPart.Anchored then char.HumanoidRootPart.Anchored = false end
+    
+    local distance = (targetCFrame.Position - char.HumanoidRootPart.Position).Magnitude
+    local speed = 350 
+    local tweenInfo = TweenInfo.new(distance / speed, Enum.EasingStyle.Linear)
+    
+    local tween = TweenService:Create(char.HumanoidRootPart, tweenInfo, {CFrame = targetCFrame})
+    tween:Play()
+    tween.Completed:Wait()
+end
+
+-- ==========================================
+-- VÒNG LẶP CHECK KEY RÂU ĐEN & ĐÁNH BOSS (SEA 2)
+-- ==========================================
+spawn(function()
+    while true do
+        task.wait(1)
+        pcall(function()
+            local lp = game.Players.LocalPlayer
+            local char = lp.Character
+            
+            -- Kiểm tra xem người chơi có đang giữ Fist of Darkness không (Trong Túi hoặc Trên Tay)
+            local hasKey = lp.Backpack:FindFirstChild("Fist of Darkness") or char:FindFirstChild("Fist of Darkness")
+            
+            if hasKey then
+                if not _G.PauseHop then
+                    _G.PauseHop = true
+                    _G.AutoChest = false -- Tạm dừng nhặt rương để ưu tiên Râu Đen
+                    StatusLabel.Text = "🚨 ĐÃ NHẶT ĐƯỢC KEY RÂU ĐEN! KHÓA HOP SV! 🚨"
+                    StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+                    if char:FindFirstChild("Humanoid") then char.Humanoid.PlatformStand = false end
+                    if char.HumanoidRootPart:FindFirstChild("BodyVelocity") then char.HumanoidRootPart.BodyVelocity:Destroy() end
+                end
+                
+                -- TỰ ĐỘNG ĐÁNH RÂU ĐEN NẾU BOSS XUẤT HIỆN (Darkbeard)
+                local boss = game.Workspace.Enemies:FindFirstChild("Darkbeard")
+                if boss and boss:FindFirstChild("HumanoidRootPart") and boss.Humanoid.Health > 0 then
+                    StatusLabel.Text = "⚔️ ĐANG CHIẾN BOSS RÂU ĐEN... ⚔️"
+                    -- Trang bị vũ khí (Ưu tiên Melee/Combat)
+                    for _, tool in pairs(lp.Backpack:GetChildren()) do
+                        if tool:IsA("Tool") then lp.Character.Humanoid:EquipTool(tool) break end
+                    end
+                    -- Bay lên đầu boss đấm
+                    char.HumanoidRootPart.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 8, 0)
+                    game:GetService('VirtualUser'):CaptureController()
+                    game:GetService('VirtualUser'):ClickButton1(Vector2.new(850, 520))
+                end
+            else
+                -- Nếu không/chưa/đã mất Key Râu Đen thì cho nhặt rương tiếp
+                if _G.PauseHop then
+                    _G.PauseHop = false
+                    _G.AutoChest = true
+                    timeLeft = 150 -- Reset lại thời gian lag phòng mới
+                    StatusLabel.Text = "Trạng thái: Đang quét rương..."
+                    StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+                end
+            end
+        end)
+    end
+end)
+
+-- ==========================================
+-- VÒNG LẶP QUÉT VÀ BAY ĐI NHẶT RƯƠNG (HỖ TRỢ CẢ 3 SEA)
+-- ==========================================
+spawn(function()
+    while true do
+        task.wait(0.2)
+        if _G.AutoChest and not _G.PauseHop then
+            pcall(function()
+                local lp = game.Players.LocalPlayer
+                local char = lp.Character
+                if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Humanoid") then
+                    
+                    local hasChest = false
+                    -- Blox Fruit lưu rương trực tiếp tại Workspace ở cả 3 Sea
+                    for _, v in pairs(game.Workspace:GetChildren()) do
+                        if string.find(v.Name, "Chest") and v:IsA("Part") then
+                            hasChest = true
+                            
+                            if not char.HumanoidRootPart:FindFirstChild("BodyVelocity") then
+                                local bv = Instance.new("BodyVelocity")
+                                bv.Velocity = Vector3.new(0, 0, 0)
+                                bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+                                bv.Parent = char.HumanoidRootPart
+                            end
+                            
+                            char.HumanoidRootPart.CanCollide = false
+                            char.Humanoid.PlatformStand = true 
+                            
+                            TweenToChest(v.CFrame)
+                            task.wait(0.15)
+                        end
+                    end
+                    
+                    if not hasChest then
+                        char.Humanoid.PlatformStand = false
+                        if char.HumanoidRootPart:FindFirstChild("BodyVelocity") then
+                            char.HumanoidRootPart.BodyVelocity:Destroy()
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- ==========================================
+-- ĐẾM NGƯỢC THỜI GIAN & TỰ ĐỘNG ĐỔI SERVER
+-- ==========================================
+spawn(function()
+    while true do
+        task.wait(1)
+        if not _G.PauseHop then
+            if timeLeft > 0 then
+                timeLeft = timeLeft - 1
+                TimeLabel.Text = "Thời gian còn lại ở SV này: " .. tostring(timeLeft) .. "s"
+            else
+                TimeLabel.Text = "🚀 ĐANG HOP SERVER MỚI..."
+                task.wait(0.2)
+                
+                local HttpService = game:GetService("HttpService")
+                local TeleportService = game:GetService("TeleportService")
+                local PlaceId = game.PlaceId
+                
+                pcall(function()
+                    local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+                    for _, server in pairs(servers.data) do
+                        if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                            TeleportService:TeleportToPlaceInstance(PlaceId, server.id, game.Players.LocalPlayer)
+                            break
+                        end
+                    end
+                end)
+            end
+        else
+            TimeLabel.Text = "⏸️ ĐÃ KHÓA HOP (Đang có Key Râu Đen)"
+        end
+    end
+end)
