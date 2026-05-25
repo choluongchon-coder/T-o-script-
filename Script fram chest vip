@@ -1,0 +1,112 @@
+-- ==========================================================
+-- SCRIPT AUTO CHEST & AUTO BOSS FULL (BẢN DÀI, ĐẦY ĐỦ)
+-- ==========================================================
+
+-- [1] TỰ ĐỘNG CHỌN PHE & GIẢM LAG
+pcall(function()
+    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("SetTeam", "Marines")
+    settings().Rendering.QualityLevel = 1
+    game:GetService("Lighting").GlobalShadows = false
+    for _, v in pairs(game:GetDescendants()) do
+        if v:IsA("Part") or v:IsA("MeshPart") then v.Material = Enum.Material.SmoothPlastic
+        elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") then v:Destroy() end
+    end
+end)
+
+-- [2] HÀM DỊCH CHUYỂN AN TOÀN - FIX LỖI 2 ĐẢO
+function SafeMove(targetPos)
+    local char = game.Players.LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart.Anchored = true
+        char.HumanoidRootPart.CFrame = CFrame.new(targetPos)
+        task.wait(0.6) -- CHỜ LOAD MAP ĐỂ KHÔNG BỊ KẸT
+        char.HumanoidRootPart.Anchored = false
+    end
+end
+
+-- [3] HÀM NHẢY SERVER
+function PublicServerHop()
+    local HttpService = game:GetService("HttpService")
+    local TeleportService = game:GetService("TeleportService")
+    local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+    for _, server in pairs(servers.data) do
+        if server.playing < server.maxPlayers and server.id ~= game.JobId then
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, game.Players.LocalPlayer)
+            break
+        end
+    end
+end
+
+-- [4] LUỒNG SĂN BOSS & FARM VẬT PHẨM (SEA 2 & 3)
+spawn(function()
+    while true do
+        task.wait(0.5)
+        pcall(function()
+            local lp = game.Players.LocalPlayer
+            local char = lp.Character
+            local mySea = game.PlaceId
+            
+            -- ĐIỀU KIỆN SĂN BOSS SEA 2 (RÂU ĐEN)
+            if mySea == 2753915549 then
+                local hasFist = lp.Backpack:FindFirstChild("Fist of Darkness") or char:FindFirstChild("Fist of Darkness")
+                if hasFist then
+                    _G.PauseHop = true
+                    local boss = game.Workspace.Enemies:FindFirstChild("Darkbeard")
+                    if boss then
+                        char.HumanoidRootPart.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0)
+                        local tool = char:FindFirstChildOfClass("Tool")
+                        if tool then tool:Activate() end
+                    end
+                else _G.PauseHop = false end
+            
+            -- ĐIỀU KIỆN SĂN BOSS SEA 3 (DOUGH KING / KATAKURI)
+            elseif mySea == 7449423635 then
+                local hasSweet = lp.Backpack:FindFirstChild("Sweet Chalice") or char:FindFirstChild("Sweet Chalice")
+                if hasSweet then
+                    _G.PauseHop = true
+                    local boss = game.Workspace.Enemies:FindFirstChild("Dough King") or game.Workspace.Enemies:FindFirstChild("Cake Prince")
+                    if boss then
+                        char.HumanoidRootPart.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0)
+                        local tool = char:FindFirstChildOfClass("Tool")
+                        if tool then tool:Activate() end
+                    end
+                else _G.PauseHop = false end
+            end
+        end)
+    end
+end)
+
+-- [5] LUỒNG FARM RƯƠNG TỰ ĐỘNG - ĐÃ FIX LỖI KẸT
+spawn(function()
+    while true do
+        task.wait(0.2)
+        if _G.AutoChest and not _G.PauseHop then
+            pcall(function()
+                local char = game.Players.LocalPlayer.Character
+                local closest = nil
+                local dist = 9999
+                
+                for _, v in pairs(game.Workspace:GetDescendants()) do
+                    if v:IsA("Part") and (string.find(v.Name, "Chest") or string.find(v.Name, "Box")) then
+                        local mag = (v.Position - char.HumanoidRootPart.Position).Magnitude
+                        if mag < dist then dist = mag; closest = v end
+                    end
+                end
+                
+                if closest then
+                    if dist > 20 then
+                        SafeMove(closest.Position + Vector3.new(0, 5, 0))
+                    else
+                        char.HumanoidRootPart.CFrame = closest.CFrame
+                        firetouchinterest(char.HumanoidRootPart, closest, 0)
+                        firetouchinterest(char.HumanoidRootPart, closest, 1)
+                        task.wait(0.1)
+                        if closest and closest.Parent then closest:Destroy() end
+                    end
+                else
+                    PublicServerHop()
+                end
+            end)
+        end
+    end
+end)
