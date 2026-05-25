@@ -1,0 +1,251 @@
+-- ==========================================================
+-- SCRIPT OPTIMIZED V10: SUPER FINAL - ĐỒNG BỘ 3 SEA + FIX CỨNG 40S + AUTO BOSS
+-- ==========================================================
+
+_G.AutoChest = true
+_G.PauseHop = false 
+_G.FastAttack = false 
+_G.ForceHopNow = false 
+local timeSpent = 0
+
+local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local currentPlaceId = game.PlaceId
+
+if not _G.VisitedServers then _G.VisitedServers = {} end
+table.insert(_G.VisitedServers, game.JobId)
+
+-- [1] TỐI ƯU GIAO DIỆN VIỀN ĐỎ V10 CHUẨN (TÊN CHUẨN TIKTOK:HYDRADAT)
+local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+ScreenGui.Name = "HydraDat_V10_Final"
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 330, 0, 180)
+MainFrame.Position = UDim2.new(0.02, 0, 0.1, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+local UIStroke = Instance.new("UIStroke", MainFrame)
+UIStroke.Color = Color3.fromRGB(255, 0, 0)
+UIStroke.Thickness = 3
+
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, 0, 0.2, 0)
+Title.Position = UDim2.new(0, 0, 0.05, 0)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.SourceSansBold
+Title.Text = "🔥 tiktok:hydradat 🔥"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 22
+
+local StatusLabel = Instance.new("TextLabel", MainFrame)
+StatusLabel.Size = UDim2.new(1, -30, 0.18, 0)
+StatusLabel.Position = UDim2.new(0, 15, 0.3, 0)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Font = Enum.Font.SourceSansBold
+StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+StatusLabel.TextSize = 14
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+StatusLabel.Text = "Trạng thái: Đang quét rương..."
+
+local BossLabel = Instance.new("TextLabel", MainFrame)
+BossLabel.Size = UDim2.new(1, -30, 0.18, 0)
+BossLabel.Position = UDim2.new(0, 15, 0.5, 0)
+BossLabel.BackgroundTransparency = 1
+BossLabel.Font = Enum.Font.SourceSansBold
+BossLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+BossLabel.TextSize = 14
+BossLabel.TextXAlignment = Enum.TextXAlignment.Left
+BossLabel.Text = "Săn Boss: Đang quét mục tiêu..."
+
+local TimerLabel = Instance.new("TextLabel", MainFrame)
+TimerLabel.Size = UDim2.new(1, -30, 0.18, 0)
+TimerLabel.Position = UDim2.new(0, 15, 0.7, 0)
+TimerLabel.BackgroundTransparency = 1
+TimerLabel.Font = Enum.Font.SourceSansBold
+TimerLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+TimerLabel.TextSize = 14
+TimerLabel.TextXAlignment = Enum.TextXAlignment.Left
+TimerLabel.Text = "Thời gian đổi phòng: 0s / 40s"
+
+-- KHÓA CAMERA CỐ ĐỊNH CHỐNG CHÚI/LẬT MÀN HÌNH
+local cam = game.Workspace.CurrentCamera
+game:GetService("RunService").RenderStepped:Connect(function()
+    local lp = game.Players.LocalPlayer
+    if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+        if _G.AutoChest and not _G.PauseHop then
+            cam.CameraType = Enum.CameraType.Custom
+            if cam.CameraSubject ~= lp.Character.Humanoid then
+                cam.CameraSubject = lp.Character.Humanoid
+            end
+        end
+    end
+end)
+
+-- [2] LUỒNG FAST ATTACK ĐẬP BOSS TỐC ĐỘ CAO
+task.spawn(function()
+    while true do
+        task.wait() 
+        if _G.FastAttack then
+            pcall(function()
+                local VirtualUser = game:GetService('VirtualUser')
+                VirtualUser:CaptureController()
+                VirtualUser:ClickButton1(Vector2.new(850, 520))
+                local weapon = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                if weapon then weapon:Activate() end
+            end)
+        end
+    end
+end)
+
+function EquipWeapon()
+    local lp = game.Players.LocalPlayer
+    for _, tool in pairs(lp.Backpack:GetChildren()) do
+        if tool:IsA("Tool") and (tool.ToolTip == "Melee" or tool.ToolTip == "Sword") then
+            lp.Character.Humanoid:EquipTool(tool)
+            break
+        end
+    end
+end
+
+-- [3] HÀM BAY TWEEN CHUẨN ĐÚNG TỐC ĐỘ 300
+function TweenTo(pos)
+    local char = game.Players.LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local dist = (pos.Position - char.HumanoidRootPart.Position).Magnitude
+    local tween = TweenService:Create(char.HumanoidRootPart, TweenInfo.new(dist / 300, Enum.EasingStyle.Linear), {CFrame = pos})
+    tween:Play()
+    tween.Completed:Wait()
+end
+
+-- [4] LUỒNG TỰ ĐỘNG SĂN BOSS ĐỘC LẬP THEO SEA (KHÔNG KẸT LUỒNG NHẶT)
+spawn(function()
+    while true do
+        task.wait(0.5)
+        pcall(function()
+            local lp = game.Players.LocalPlayer
+            local char = lp.Character
+            if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+            
+            -- Kiểm tra Sea 2 (Râu Đen)
+            if currentPlaceId == 4442272183 then
+                local darkbeard = game.Workspace.Enemies:FindFirstChild("Darkbeard")
+                if darkbeard and darkbeard:FindFirstChild("HumanoidRootPart") and darkbeard.Humanoid.Health > 0 then
+                    _G.PauseHop = true _G.FastAttack = true
+                    BossLabel.Text = "Săn Boss: ⚔️ ĐANG ĐẬP RÂU ĐEN!"
+                    char.HumanoidRootPart.CFrame = darkbeard.HumanoidRootPart.CFrame * CFrame.new(0, 5.5, 0)
+                    EquipWeapon()
+                else
+                    _G.PauseHop = false _G.FastAttack = false
+                    BossLabel.Text = "Săn Boss: Đang chờ Râu Đen..."
+                end
+            -- Kiểm tra Sea 3 (Katakuri V2)
+            elseif currentPlaceId == 7449423635 then
+                local doughKing = game.Workspace.Enemies:FindFirstChild("Dough King") or game.Workspace.Enemies:FindFirstChild("Cake Prince")
+                if doughKing and doughKing:FindFirstChild("HumanoidRootPart") and doughKing.Humanoid.Health > 0 then
+                    _G.PauseHop = true _G.FastAttack = true
+                    BossLabel.Text = "Săn Boss: ⚔️ ĐẬP KATAKURI V2!"
+                    char.HumanoidRootPart.CFrame = doughKing.HumanoidRootPart.CFrame * CFrame.new(0, 5.5, 0)
+                    EquipWeapon()
+                else
+                    _G.PauseHop = false _G.FastAttack = false
+                    BossLabel.Text = "Săn Boss: Chờ Dough King/Cake Prince..."
+                end
+            else
+                BossLabel.Text = "Săn Boss: Không có mục tiêu yêu cầu"
+            end
+        end)
+    end
+end)
+
+-- [5] LUỒNG QUÉT RƯƠNG TOÀN MAP KHÔNG SÓT ĐẢO + TRỄ 1S
+spawn(function()
+    while true do
+        task.wait(0.1)
+        if _G.AutoChest and not _G.PauseHop then
+            pcall(function()
+                local lp = game.Players.LocalPlayer
+                local char = lp.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local closest = nil
+                    local dist = math.huge
+                    
+                    -- Tìm rương toàn bản đồ bằng phương thức triệt để nhất
+                    for _, v in pairs(game.Workspace:GetDescendants()) do
+                        if v:IsA("Part") and (string.find(v.Name, "Chest") or string.find(v.Name, "Box")) then
+                            if v:FindFirstChild("TouchInterest") then
+                                local mag = (v.Position - char.HumanoidRootPart.Position).Magnitude
+                                if mag < dist then dist = mag; closest = v end
+                            end
+                        end
+                    end
+
+                    if closest then
+                        timeSpent = 0 -- Có rương là reset ngay bộ đếm Hop
+                        StatusLabel.Text = "Trạng thái: ✈️ Bay nhặt rương (Tốc độ 300)..."
+                        StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+                        TweenTo(closest.CFrame)
+                        
+                        if (char.HumanoidRootPart.Position - closest.Position).Magnitude < 25 then
+                            firetouchinterest(char.HumanoidRootPart, closest, 0)
+                            task.wait(0.02)
+                            firetouchinterest(char.HumanoidRootPart, closest, 1)
+                            
+                            StatusLabel.Text = "Trạng thái: ⏱️ Delay lượm rương (1s)..."
+                            StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+                            task.wait(1) -- Giữ nguyên delay 1s chống lỗi rương
+                            pcall(function() closest:Destroy() end)
+                        end
+                    else
+                        -- Không có rương thì tăng thời gian đếm ngược lên
+                        timeSpent = timeSpent + 0.1
+                        StatusLabel.Text = "Trạng thái: Đang chờ rương xuất hiện..."
+                        StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    end
+                    TimerLabel.Text = "Thời gian đổi phòng: " .. math.floor(timeSpent) .. "s / 40s"
+                end
+            end)
+        end
+    end
+end)
+
+-- [6] THUẬT TOÁN HOP SERVER RANDOM FIX CỨNG ĐÚNG 40 GIÂY
+function PublicServerHop()
+    StatusLabel.Text = "Trạng thái: 🚀 ĐANG TÌM PHÒNG MỚI..."
+    StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 0)
+    pcall(function()
+        local rawData = game:HttpGet("https://games.roblox.com/v1/games/" .. currentPlaceId .. "/servers/Public?sortOrder=Desc&limit=100")
+        local servers = HttpService:JSONDecode(rawData)
+        
+        local serverList = servers.data
+        for i = #serverList, 2, -1 do
+            local j = math.random(i)
+            serverList[i], serverList[j] = serverList[j], serverList[i]
+        end
+        
+        for _, server in pairs(serverList) do
+            if server.playing and server.playing < server.maxPlayers and server.id ~= game.JobId then
+                local isOldServer = false
+                for _, oldId in pairs(_G.VisitedServers) do
+                    if server.id == oldId then isOldServer = true break end
+                end
+                if not isOldServer then
+                    table.insert(_G.VisitedServers, server.id) 
+                    task.wait(0.5)
+                    TeleportService:TeleportToPlaceInstance(currentPlaceId, server.id, game.Players.LocalPlayer)
+                    return
+                end
+            end
+        end
+    end)
+end
+
+spawn(function()
+    while true do
+        task.wait(1)
+        -- Kiểm tra nếu bộ đếm đạt mốc 40 giây thì ép nhảy phòng ngay lập tức
+        if timeSpent >= 40 or _G.ForceHopNow then
+            _G.ForceHopNow = false
+            timeSpent = 0
+            PublicServerHop()
+        end
+    end
+end)
