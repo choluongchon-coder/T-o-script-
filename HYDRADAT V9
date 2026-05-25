@@ -1,0 +1,107 @@
+-- ==========================================================
+-- SCRIPT OPTIMIZED V9: FINAL VERSION - STABLE SEA 3
+-- ==========================================================
+
+_G.AutoChest = true
+_G.PauseHop = false 
+_G.FastAttack = false 
+_G.ForceHopNow = false 
+local timeSpent = 0
+local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local currentPlaceId = game.PlaceId
+if not _G.VisitedServers then _G.VisitedServers = {} end
+table.insert(_G.VisitedServers, game.JobId)
+
+-- [1] TỐI ƯU GIAO DIỆN V9
+local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+ScreenGui.Name = "HydraDat_V9"
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 330, 0, 180)
+MainFrame.Position = UDim2.new(0.02, 0, 0.1, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+local UIStroke = Instance.new("UIStroke", MainFrame)
+UIStroke.Color = Color3.fromRGB(255, 0, 0)
+UIStroke.Thickness = 3
+
+local StatusLabel = Instance.new("TextLabel", MainFrame)
+StatusLabel.Size = UDim2.new(1, 0, 0.3, 0)
+StatusLabel.Position = UDim2.new(0, 0, 0.2, 0)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+StatusLabel.Text = "Trạng thái: Đang quét rương..."
+
+local TimerLabel = Instance.new("TextLabel", MainFrame)
+TimerLabel.Size = UDim2.new(1, 0, 0.3, 0)
+TimerLabel.Position = UDim2.new(0, 0, 0.5, 0)
+TimerLabel.BackgroundTransparency = 1
+TimerLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+TimerLabel.Text = "Thời gian đếm ngược: 0s / 40s"
+
+-- [2] HÀM TWEEN CHUẨN (TỐC ĐỘ 300)
+function TweenTo(pos)
+    local char = game.Players.LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local dist = (pos.Position - char.HumanoidRootPart.Position).Magnitude
+    local tween = TweenService:Create(char.HumanoidRootPart, TweenInfo.new(dist / 300, Enum.EasingStyle.Linear), {CFrame = pos})
+    tween:Play()
+    tween.Completed:Wait()
+end
+
+-- [3] LUỒNG QUÉT RƯƠNG VÀ ĐẾM NGƯỢC 40S
+spawn(function()
+    while true do
+        task.wait(0.1)
+        if _G.AutoChest and not _G.PauseHop then
+            local lp = game.Players.LocalPlayer
+            local char = lp.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local closest = nil
+                local dist = math.huge
+                
+                -- Quét tìm rương
+                for _, v in pairs(game.Workspace:GetDescendants()) do
+                    if v:IsA("Part") and (string.find(v.Name, "Chest") or string.find(v.Name, "Box")) then
+                        if v:FindFirstChild("TouchInterest") then
+                            local mag = (v.Position - char.HumanoidRootPart.Position).Magnitude
+                            if mag < dist then dist = mag; closest = v end
+                        end
+                    end
+                end
+
+                if closest then
+                    timeSpent = 0 -- Reset timer nếu tìm thấy rương
+                    StatusLabel.Text = "Trạng thái: Đang bay tới rương..."
+                    TweenTo(closest.CFrame)
+                    firetouchinterest(char.HumanoidRootPart, closest, 0)
+                    firetouchinterest(char.HumanoidRootPart, closest, 1)
+                    task.wait(0.5)
+                else
+                    timeSpent = timeSpent + 0.1
+                    StatusLabel.Text = "Trạng thái: Không thấy rương, đang chờ..."
+                end
+                TimerLabel.Text = "Thời gian đếm ngược: " .. math.floor(timeSpent) .. "s / 40s"
+            end
+        end
+    end
+end)
+
+-- [4] ÉP BUỘC HOP SERVER KHI ĐỦ 40S
+spawn(function()
+    while true do
+        task.wait(1)
+        if timeSpent >= 40 then
+            StatusLabel.Text = "Trạng thái: Hết thời gian, đang Hop..."
+            local rawData = game:HttpGet("https://games.roblox.com/v1/games/" .. currentPlaceId .. "/servers/Public?sortOrder=Desc&limit=100")
+            local servers = HttpService:JSONDecode(rawData)
+            for _, server in pairs(servers.data) do
+                if server.id ~= game.JobId then
+                    TeleportService:TeleportToPlaceInstance(currentPlaceId, server.id, game.Players.LocalPlayer)
+                    break
+                end
+            end
+            timeSpent = 0
+        end
+    end
+end)
