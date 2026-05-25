@@ -1,0 +1,139 @@
+-- Cấu hình bật/tắt tính năng
+_G.AutoChestBypass = true
+_G.TweenSpeed = 280 -- Tốc độ bay an toàn để bypass (250 - 300)
+_G.AntiLag = true   -- Bật giảm đồ họa tối đa
+
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local player = game.Players.LocalPlayer
+
+-------------------------------------------------------------------
+-- 0. TỰ ĐỘNG CHỌN PHE HẢI QUÂN (MARINES)
+-------------------------------------------------------------------
+pcall(function()
+    if game:GetService("Players").LocalPlayer.Team == nil then
+        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("SetTeam", "Marines")
+        task.wait(1)
+    end
+end)
+
+-------------------------------------------------------------------
+-- 1. TÍNH NĂNG GIẢM ĐỒ HỌA & XÓA HIỆU ỨNG (ANTI-LAG)
+-------------------------------------------------------------------
+if _G.AntiLag then
+    pcall(function()
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 9e9
+        Lighting.Brightness = 1
+        
+        for _, v in pairs(Lighting:GetChildren()) do
+            if v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("ColorCorrectionEffect") or v:IsA("BloomEffect") then
+                v:Destroy()
+            end
+        end
+
+        for _, v in pairs(Workspace:GetDescendants()) do
+            if v:IsA("Part") or v:IsA("CornerWedgePart") or v:IsA("WedgePart") or v:IsA("TrussPart") then
+                v.Material = Enum.Material.SmoothPlastic
+                v.Reflectance = 0
+            elseif v:IsA("Decal") or v:IsA("Texture") then
+                v:Destroy()
+            elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
+                v.Enabled = false
+            end
+        end
+    end)
+end
+
+-------------------------------------------------------------------
+-- 2. HÀM XỬ LÝ BAY MƯỢT (TWEEN)
+-------------------------------------------------------------------
+local function toTarget(targetCFrame)
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = player.Character.HumanoidRootPart
+    
+    local distance = (hrp.Position - targetCFrame.Position).Magnitude
+    local duration = distance / _G.TweenSpeed
+    
+    local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
+    
+    tween:Play()
+    return tween
+end
+
+-------------------------------------------------------------------
+-- 3. HÀM TỰ ĐỘNG ĐỔI SERVER (SERVER HOP) KHI HẾT RƯƠNG
+-------------------------------------------------------------------
+local function ServerHop()
+    local PlaceId = game.PlaceId
+    local JobId = game.JobId
+    local Url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+    
+    pcall(function()
+        local Servers = HttpService:JSONDecode(game:HttpGet(Url))
+        for _, server in pairs(Servers.data) do
+            -- Tìm server còn chỗ trống, không phải server hiện tại và ping không quá cao
+            if server.playing < server.maxPlayers and server.id ~= JobId then
+                TeleportService:TeleportToPlaceInstance(PlaceId, server.id, player)
+                task.wait(5) -- Đợi tải trang chuyển server
+            end
+        end
+    end)
+end
+
+-- Kiểm tra nếu trong map hoàn toàn không còn rương nào thì nhảy server ngay từ đầu
+local function checkChestsExist()
+    for _, v in pairs(Workspace:GetChildren()) do
+        if string.find(v.Name, "Chest") and v:IsA("Part") then
+            return true
+        end
+    end
+    return false
+end
+
+-------------------------------------------------------------------
+-- 4. VÒNG LẶP CHÍNH: FARM RƯƠNG -> HẾT RƯƠNG -> ĐỔI SERVER
+-------------------------------------------------------------------
+spawn(function()
+    while _G.AutoChestBypass do
+        task.wait(0.5)
+        
+        -- Nếu kiểm tra không thấy rương nào nữa, tiến hành đổi server
+        if not checkChestsExist() then
+            print("Đã hết rương! Đang tiến hành đổi server...")
+            ServerHop()
+        else
+            -- Nếu còn rương, tiến hành đi nhặt
+            pcall(function()
+                for _, v in pairs(Workspace:GetChildren()) do
+                    if string.find(v.Name, "Chest") and v:IsA("Part") then
+                        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                            
+                            -- Xuyên tường liên tục
+                            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                            if humanoid then
+                                humanoid:ChangeState(11) 
+                            end
+                            
+                            -- Bay đến rương
+                            local activeTween = toTarget(v.CFrame)
+                            
+                            -- Chờ nhặt xong rương
+                            repeat
+                                task.wait()
+                                if humanoid then humanoid:ChangeState(11) end
+                            until not v:IsA("Part") or not _G.AutoChestBypass or not v.Parent or (player.Character.HumanoidRootPart.Position - v.Position).Magnitude < 5
+                            
+                            if activeTween then activeTween:Cancel() end
+                            task.wait(0.2) -- Khựng lại một chút trước khi sang rương tiếp theo để tránh bị anti-cheat nghi ngờ
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
