@@ -1,0 +1,107 @@
+-- ==========================================================
+-- SCRIPT FULL ĐÃ FIX LỖI KHÔNG HIỆN MENU & KHÔNG NHẶT
+-- ==========================================================
+
+-- [1] TỐI ƯU HỆ THỐNG (Giảm lag)
+pcall(function()
+    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("SetTeam", "Marines")
+    settings().Rendering.QualityLevel = 1
+    game:GetService("Lighting").GlobalShadows = false
+    for _, v in pairs(game:GetDescendants()) do
+        if v:IsA("Part") or v:IsA("MeshPart") then v.Material = Enum.Material.SmoothPlastic
+        elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") then v:Destroy() end
+    end
+end)
+
+-- [2] KHỞI TẠO MENU (Đã bọc pcall để không làm chết script)
+pcall(function()
+    local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+    local MainFrame = Instance.new("Frame", ScreenGui)
+    MainFrame.Size = UDim2.new(0, 200, 0, 100)
+    MainFrame.Position = UDim2.new(0.05, 0, 0.1, 0)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    
+    local Label = Instance.new("TextLabel", MainFrame)
+    Label.Size = UDim2.new(1, 0, 1, 0)
+    Label.Text = "HYDRA DAT: AUTO CHEST"
+    Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Label.BackgroundTransparency = 1
+end)
+
+-- [3] HÀM DỊCH CHUYỂN & NHẢY SERVER
+function SafeMove(pos)
+    local lp = game.Players.LocalPlayer
+    if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+        lp.Character.HumanoidRootPart.Anchored = true
+        lp.Character.HumanoidRootPart.CFrame = CFrame.new(pos)
+        task.wait(0.5)
+        lp.Character.HumanoidRootPart.Anchored = false
+    end
+end
+
+function Hop()
+    local HttpService = game:GetService("HttpService")
+    local TeleportService = game:GetService("TeleportService")
+    local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
+    for _, s in pairs(servers.data) do
+        if s.playing < s.maxPlayers and s.id ~= game.JobId then
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, s.id, game.Players.LocalPlayer)
+            break
+        end
+    end
+end
+
+-- [4] VÒNG LẶP FARM RƯƠNG (ƯU TIÊN CHẠY)
+_G.AutoChest = true
+_G.Pause = false
+
+spawn(function()
+    while task.wait(0.2) do
+        if _G.AutoChest and not _G.Pause then
+            pcall(function()
+                local lp = game.Players.LocalPlayer
+                local char = lp.Character
+                local chest = nil
+                local dist = 9999
+                
+                for _, v in pairs(game.Workspace:GetDescendants()) do
+                    if v:IsA("Part") and (string.find(v.Name, "Chest") or string.find(v.Name, "Box")) then
+                        local mag = (v.Position - char.HumanoidRootPart.Position).Magnitude
+                        if mag < dist then dist = mag; chest = v end
+                    end
+                end
+                
+                if chest then
+                    if dist > 20 then SafeMove(chest.Position + Vector3.new(0, 5, 0))
+                    else 
+                        char.HumanoidRootPart.CFrame = chest.CFrame
+                        firetouchinterest(char.HumanoidRootPart, chest, 0)
+                        task.wait(0.1)
+                        firetouchinterest(char.HumanoidRootPart, chest, 1)
+                        task.wait(0.1)
+                        if chest and chest.Parent then chest:Destroy() end
+                    end
+                else Hop() end
+            end)
+        end
+    end
+end)
+
+-- [5] VÒNG LẶP BOSS (Chạy song song)
+spawn(function()
+    while task.wait(1) do
+        pcall(function()
+            local boss = game.Workspace.Enemies:FindFirstChild("Darkbeard") or 
+                         game.Workspace.Enemies:FindFirstChild("Dough King") or 
+                         game.Workspace.Enemies:FindFirstChild("Cake Prince")
+            if boss then
+                _G.Pause = true
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0)
+                local tool = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                if tool then tool:Activate() end
+            else
+                _G.Pause = false
+            end
+        end)
+    end
+end)
